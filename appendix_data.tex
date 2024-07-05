@@ -1,0 +1,22 @@
+
+
+Calculate Rain from Accumulated
+Filter out erroneously high, 100 mm and negative
+
+Calculate equilibrium moisture 
+Filter out negatives
+
+Handle NAs
+Moisture less than 1 to NA
+
+\hrule
+
+The data retrieval was performed on the University of Colorado Denver computing cluster. The retrieval code exists on github as part of the "wrfxpy" python software package, part of the larger OpenWFM project. The exact python function, which was called with parameters from an executable file, can be found at: \url{https://github.com/openwfm/wrfxpy/blob/develop-72-jh/src/ingest/build_raws_dicts.py}
+
+\subsection*{Data Transformations}
+
+Air temperature observations were converted from Celsius into Kelvin, since the constants in the equations of equilibrium moisture depend on those units. Hourly rainfall, in units of mm/hour, was calculated from the hourly accumulated rainfall by taking the first difference in time. RAWS stations measure hourly accumulated precipitation using a rain gage bucket. These buckets fill up with rain over time and must be occasionally emptied. Some potential sources of error for this data include faulty sensors, uneven rain gage buckets, full rain gages that aren't emptied out when more rain is falling, etc. \cite{campbell} Rainfall observations were filtered out and considered missing if they were over 100mm or less than zero. Additional filters could be explored in future research.
+
+The time of the data observation as retrieved from Synoptic is in Universal Time Coordinated (UTC) format. From this time, the hour of the day, from 0 to 23, is extracted. The hour of the day is used to help the models learn the periodic effect of the diurnal wetting and drying cycles that fuels experience. Humidity and temperature, the main physical drivers of fuel moisture, both have a diurnal pattern of regular highs and lows. These periods correspond with the diurnal pattern of the sun in the sky, where daily maximums in temperature and minimums of humidity occur in the afternoon. A simplifying assumption made in this project is to treat all of these hours the same across a larger geographic region. To make the hour of the day more physically meaningful, the hour would be adjusted based on the position of the sun as it moves in the longitudinal direction. The geographic region in this study is the Rocky Mountain GACC, which spans from central utah through Kansas in the West to East direction. This is a distance of almost 1,500 kilometers. At those distances, there may begin to be meaningful physical difference in the hour of the day for different locations. There exist methods to use the azimuth of the sun to adjust times between locations.
+
+

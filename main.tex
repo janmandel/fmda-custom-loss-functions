@@ -1,0 +1,337 @@
+% Required for inserting images
+
+\documentclass[11pt]{article}%
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{fullpage}
+\usepackage{tabularx}
+\usepackage{subcaption}
+\usepackage{booktabs}
+\usepackage{appendix}
+\usepackage{url}%
+\usepackage{tikz}
+\setcounter{MaxMatrixCols}{30}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{1em}
+%TCIDATA{OutputFilter=latex2.dll}
+%TCIDATA{Version=5.50.0.2960}
+%TCIDATA{LastRevised=Thursday, May 23, 2024 18:43:32}
+%TCIDATA{<META NAME="GraphicsSave" CONTENT="32">}
+%TCIDATA{<META NAME="SaveForMode" CONTENT="1">}
+%TCIDATA{BibliographyScheme=Manual}
+%BeginMSIPreambleData
+\providecommand{\U}[1]{\protect\rule{.1in}{.1in}}
+%EndMSIPreambleData
+\begin{document}
+\title{Custom Loss Functions in Fuel Moisture Modeling}
+\author{
+    \begin{tabular}[t]{c}
+        Jonathon Hirschi \\
+        University of Colorado Denver \\
+        \\
+        Advisor: Jan Mandel
+    \end{tabular}
+}
+
+\date{Summer 2024}
+\maketitle
+
+\begin{abstract}
+Fuel moisture content (FMC) is a key feature of predicting wildfire rate of spread (ROS). Machine learning models of FMC are being used more in recent years, augmenting or replacing traditional physics-based approaches. Wildfire ROS has a highly nonlinear relationship with FMC, where small differences in dry fuels lead to large differences in ROS. In this study, custom loss functions that place more weight on dry fuels were examined with a variety of machine learning models of FMC. The models were evaluated with a spatiotemporal cross-validation procedure to examine whether the custom loss functions led to more accurate forecasts of ROS. Results show that the custom loss functions improved accuracy for ROS forecasts by a modest, but nonzero amount. Further research would be needed to establish whether the improvement in ROS forecasts leads to more accurate real-time wildfire simulations.
+\end{abstract}
+
+% Abbreviations section
+\subsection*{Key Terms \& Abbreviations}
+\begin{itemize}
+    \item \textbf{FMC:} Fuel Moisture Content, a ratio interpretable as a percentage.
+    \item \textbf{ROS:} Rate of Spread, units of meters per second.
+    \item \textbf{Response Variable:} the variable that is being modeled, or the output of the model.
+    \item \textbf{Features:} data used to predict the response variable. Also known as predictors, covariates, etc.
+    \item \textbf{Residual:} the difference between an observed response variable value and a model output predicting meant to predict it.
+\end{itemize}
+
+
+\newpage
+\tableofcontents
+\newpage
+
+\section{Background}
+\subsection{Wildfires \& Climate Change}
+
+Wildfires impact our lives in many ways, including direct destruction from fires and other public health effects. Toxic gases and harmful particulate matter make wildfires a threat to air quality and human health as a result \cite{who_wildfires}. Wildfires also affect water quality by depositing metals and other toxins into waterways and contributing to erosion and flooding \cite{usgs_wildfires}. The U.S. Congress Joint Economic Committee estimated that total monetary costs of wildfires is between \$394 billion and \$893 billion after accounting for affects of burned structures, smoke impacts, watershed damage, etc. \cite{jec_wildfires}.
+
+There are complicated interactions between the environment, human activity, and wildfires. Some important weather patterns make fires more prevalent and more severe when they do ignite. Drought is considered the “dominant driver of fire emissions” \cite{ipcc} because dry vegetation provides the needed fuel for fires. Both the lack of precipitation and lower air humidity contribute to dry fuels. Wind is another key factor in fire activity. Strong winds dry out fuels, making fires more likely to ignite, and once fires are underway wind feeds the fire oxygen and physically spreads the flames, thus increasing wildfire spread \cite{Richardson-2022-GIW}.
+
+Climate change is projected to increase the frequency and severity of wildfires, caused primarily by higher temperatures and less frequent precipitation. There is clear evidence that the changes predicted by climate models are already underway. The total burned area has increased, and more areas of the world are susceptible to fires \cite{ipcc}. The three largest fires in Colorado’s history all occurred in 2020 \cite{co_dfpc}. Wildfires are also more frequent overall and more common throughout the year, even during months that traditionally were wetter and less prone to ignition. The IPCC  reports that “fire weather season has already lengthened by 18.7\% globally between 1979 and 2013” \cite{ipcc}. Traditionally, the months of May through September were considered Colorado’s fire season \cite{WFCA-2023-CFS}. However, the most destructive wildfire in Colorado’s history, the Marshall Fire, occurred outside of Boulder in December of 2021. \cite{co_dfpc} 
+
+
+\subsection{Fuel Moisture Content}
+
+Fuel moisture content (FMC) is a critical component of wildfire susceptibility and fire spread. It is a measure of the water content in vegetation, and is expressed as a percentage of the "dry weight" of the fuel. \cite{NCEI-2024-DFM} The dry weight is what the fuel would weigh when entirely dried out. In practice, sticks of wood are dried out in kilns and weighed to determine the dry weight. An FMC of 0\% would be completely dry fuel, and FMC values can range over 100\% if the total weight of the water is greater than the dry weight of the plant material. The formula for FMC is:
+
+\begin{equation}
+    \text{FMC} (\%) = \frac{\text{Saturated Fuel Weight} - \text{Dry Weight}}{\text{Dry Weight}} \cdot 100\%
+\end{equation}
+
+Dry fuels burn more readily, and wetter fuels burn more slowly or not at all. Atmospheric conditions affect FMC in a variety of ways. Temperature is a key component of FM; warmer temperatures dry out fuels, with other factors being held constant. Relative humidity (RH) is another key component of FM; more moisture in the air generally leads to more moisture in fuels. Higher wind speeds lead to drier fuels. Finally, solar radiation dries out fuels. Cloudy days with little direct solar radiation will generally lead to higher FMC conditions \cite{NWCG-FireWeather}. It is important to note that these atmospheric conditions relate to each other in complicated ways. For example, higher temperatures can cause lower RH and are also associated with stronger solar radiation, all of which lead to lower FM. However, higher temperatures can cause more evaporation and lead to increases in precipitation, which in turn increases FM. 
+
+Researchers typically model dead FMC, or the water content of dead vegetation, separately from the FMC of living plants. \footnote{In practice, the dead FMC models are used as an input into the live FMC forecasts. In WRF-SFIRE and elsewhere, the dead FMC model is adjusted to provide estimates of live FMC based on biological factors of the plant.} This is due to several factors. Living plants try to maintain homeostasis, so they resist large fluctuations in moisture caused by atmospheric conditions. The water content of dead fuel, on the other hand, responds readily to atmospheric conditions and therefore there can be large fluctuations that are relevant to wildfire spread. Additionally, live fuels are thought of as composites of various fuel types. A sagebrush, for example, has woody material of various diameters as well as herbaceous material. These various materials retain moisture in different ways and respond to fire differently \cite{NWCG-FireWeather}. In this project, only dead fuel moisture will be considered. 
+
+Dead fuel moisture is divided into different classes based on how quickly the material responds to changes in atmospheric conditions. These include 1-hour, 10-hour, 100-hour, and 1,000-hour fuels \cite{NCEI-2024-DFM}. This category is defined as the time it would take for 2/3 of the fuel to change FMC in response to changing atmospheric conditions. A 1-hour fuel, very small twigs for example, will get wetter quickly when exposed to precipitation, while a 1,000-hour fuel, such as a fallen log, would take much longer to absorb precipitation and thus the FMC changes slower. 
+
+The National Interagency Fire Center (NIFC) operates Remote Automatic Weather Stations (RAWS) across the country to measure hourly FMC and other associated environmental variables \cite{NIFC}. Figure \ref{fig:wfas_raws} shows the location of all RAWS with FMC sensors.
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.8\textwidth]{images/WFAS-RAWS-map.png}
+    \caption{All RAWS FMC locations.}
+    \label{fig:wfas_raws}
+\end{figure}
+
+These RAWS stations\footnote{The "S" in RAWS stands for station, so this is redundant terminology. It is an aesthetic preference that this terminology is more clear.} have sensors for 10-hour fuels, which consist of a 1/2 inch pine dowel with a moisture probe inside of it \cite{cs_10h}. Observations of 1-hour or 100-hour fuels are typically done through field observations. But for real-time FMC modeling, 10-hour fuels are the only type of fuel moisture with substantial data availability. In this project, dead 10-hour fuels will be examined for these reasons.
+
+An important concept in FMC modeling is "equilibrium moisture content". Theoretically, if environmental conditions are kept stable for a long period of time, the FMC of wood will equilibrate to its surroundings. The equilibrium FMC is the theoretical value that the FMC would approach over time, and it is calculated from relative humidity and temperature \cite{Mitchell-2018-CEM}. There are slightly different physical processes when fuels dry out or get wet, so researchers have developed the "wetting equilibrium" and "drying equilibrium" to establish what the equilibrium moisture content is for fuels under these two different scenarios \cite{Mandel-2014-RAA}. These atmospheric variables are constructed from relative humidity (RH) and temperature\footnote{Units of degrees Kelvin.} (temp) in the following formulas:
+
+
+
+\begin{equation}
+\begin{split}
+\text{Wetting Equilibrium} = &0.924\cdot\text{rh}^{0.679} + 0.000499\cdot\exp(0.1\cdot\text{rh}) + \\ &0.18\cdot(21.1 + 273.15 - \text{temp})\cdot(1 - \exp(-0.115\cdot\text{rh})) \\
+\text{Drying Equilibrium} = &0.618\cdot\text{rh}^{0.753} + 0.000454\cdot\exp(0.1\cdot\text{rh}) + \\ &0.18\cdot(21.1 + 273.15 - \text{temp})\cdot(1 - \exp(-0.115\cdot\text{rh}))
+\end{split}
+\end{equation}
+
+\subsection{Wildfire Rate of Spread}
+
+The rate of spread (ROS) of a fire is a measure of how quickly fire propogates from a point of origin \cite{NFSC}. Traditionally, this was measured in chains per hour, but in recent years researchers use the units meters per second. Factors affecting ROS include wind speed \& direction, fuel density and type (e.g. fine twigs versus big logs), and FMC. 
+
+Below are some of the idealized relationships between ROS and some other factors, while holding all else constant. These are model outputs from the physics-based tools within WRF-SFIRE. In this project, the idealized relationship for a category of fuel known as "closed timber litter" will be used, since it is the most representative of the RAWS fuel moisture sensors of the available fuel categories developed by Anderson 1982. \cite{NIFC-Fuels} Figure \ref{fig:ros_other} shows the relationship between ROS and two key predictors: terrain slope\footnote{The units in this plot are percent slope. A value of 1 indicates for every horizontal unit of distance you travel, you go up by the same amount of distance. So an idealized 45 degree slope relative to the ground would have a value of 1. For more see: https://www.usgs.gov/educational-resources/determine-percent-slope-and-angle-slope} and wind speed. \cite{openwfm_fuels} The relationship is approximately linear in both cases.
+
+
+\begin{figure}[ht]
+    \centering
+    \begin{subfigure}{0.45\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{images/fuel8_ros_slope.png}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.45\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{images/fuel8_ros_wind.png}
+    \end{subfigure}
+    \caption{ROS vs Slope and ROS vs Wind}
+    \label{fig:ros_other}
+\end{figure}
+
+
+The relationship between ROS and FMC, however, is highly nonlinear, as seen in Figure \ref{fig:fmc_ros_fmc}. Small differences in the dry region of the plot, from 0\% to around 5\%, lead to very large changes in the resulting ROS. For the wetter region of the plot, the relationship with ROS is approximately flat until it reaches a "moisture of extinction", where fire will not spread at all. This nonlinear relationship is of primary interest in this research project. 
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.8\textwidth]{images/fuel8_ros_fm.png}
+    \caption{ROS vs FMC relationship.}
+    \label{fig:fmc_ros_fmc}
+\end{figure}
+
+\subsection{Fuel Moisture Modeling}
+\subsubsection{History \& Physics-based Methods}
+
+Rothermel in 1972 developed a mathematical model of wildfire spread, based on physical properties of heat transfer, that included fuel moisture as one of the key parameters \cite{Rothermel-1972-MMP}. This model has been used and built upon by wildfire researchers for decades. 
+
+WRF-SFIRE is a real-time forecasting project for wildfires which combines an extensive set of mathematical methods and data processing techniques \cite{openwfm}. Within WRF-SFIRE, there is a physical model of FMC developed by Mandel (2014), which uses theoretical physical properties of wetting and drying, combined with data assimilation through the augmented Kalman filter \cite{Mandel-2014-RAA}. The core differential equation in the model uses wetting equilibrium moisture, drying equilibrium moisture, and precipitation and as data inputs.
+
+Many other physics-based models of FMC have been developed. All use some combination of relative humidity, temperature, \& precipitation to estimate FMC from physical principles, and typically field observations of FMC are used to tune parameters. \cite{Catchpole-1999-EFR}\cite{Nelson-2000-PDC}\cite{vanderKamp-2017-MFS}
+
+\subsubsection{Machine Learning models of FMC}
+
+With modern advances in computing and more extensive observed FMC data, machine learning models of FMC have become more popular. Machine learning is a general term for statistical models that are trained on observed data and used to predict new, unobserved data. The models researchers have considered have commonly included some form of linear regression, random forests, \& XGBoost. \footnote{See Methods section for more detail on these model architectures.} These models are not recursive\footnote{A recursive model in this sense is any that models the FMC at a given time as a function of the FMC at previous times.} in time, meaning that the models are mapping observed weather conditions to the response variable of FMC at each instance of time without explicitly including a temporal relationship.\footnote{Using derived time features like hour of the day and day of the year can help a model learn some time dependence, but this is different than a recursive model like autoregression or an LSTM.} 
+
+Discuss these
+\begin{itemize}
+    \item Chuvieco 2004 \cite{Chuvieco-2004-CNS}\\
+    \item Lee 2020 random forest \cite{Lee-2020-EFM}\\
+    \item Kang 2022 AR model \cite{Kang-2022-FMC}\\
+    \item McCandless 2020 RF model \cite{McCandless-2020-EWS}\\
+    \item Schreck 2023 XGB \cite{Schreck-2023-MLV}
+\end{itemize}
+
+
+Using the previously mentioned machine learning models, without explicit time recursion, is an active area of research in the fuel moisture modeling literature. Lee 2020 fit various statistical models to ground station observations in South Korea, and selected a Random Forest model as the most accurate. \cite{Lee-2020-EFM} Researchers at the National Center for Atmospheric Research (NCAR) conducted a larger study in the United States by developing and evaluated a number of machine learning models of FMC using weather data from the HRRR weather model and NASA's VIIRS satellites \cite{McCandless-2020-EWS}\cite{Schreck-2023-MLV}. The final model in their publicly available 10-hour FMC forecasting tool is an XGBoost. 
+
+Physics-based models of FMC are time dependent differential equations, so they are recursive in this way. The underlying physical process is time dependent, so an active area of research is to use temporally recursive models for fuel moisture modeling. Kang 2022 test autoregressive models and a LSTM\footnote{Long Short Term Meory, a variety of recurrent neural networks specialized for time series.} to predict monthly averaged FMC observations. \cite{Kang-2022-FMC} Other recent efforts to use recurrent neural networks (RNNs) include Fan 2021, where an LSTM was built with the 2017 Vanderkamp physical model of FMC as an input \cite{Fan-2021-PGD}. There is not a widely available FMC model product built on recursive machine learning models at this time.
+
+
+\subsection{Loss Functions in Machine Learning}
+
+\subsubsection{Loss Functions Overview}
+
+A loss function is intended to measure the fitting accuracy of a statistical model. Loss functions are used for training the parameters machine learning models. Model parameters are chosen by minimizing the loss function. This can be done analytically for models like linear regression, but for more complicated models it must be estimated using some variety of gradient descent. 
+
+When the response variable is continuous, as is the case with modeling FMC, the standard choice of loss function is the mean squared error (MSE), which is equivalent to the L2 norm of the model residuals. Suppose there is an observed vector of response data $y$ of length $N$ and a vector of model predictions $\hat y$. The $i^{th}$ residual of the model would be $(y_i - \hat y_i)$. The MSE for the model would thus be:
+
+\[
+\text{MSE} = \sum_{i=1}^N r_i^2 = \|r\|_2^2
+\]
+
+There are many other potential loss functions for continuous data, such as the the mean absolute error, equivalent to the L1 norm of the residuals. In this project, a number of weighted MSE loss functions will be considered. Weighted least squares minimizes the weighted residual sum of squares, with a weight $w_i$ applied to each residual value. In principle, the weights could come from anywhere. \footnote{Also, it is not strictly required for the weights to sum up to 1. In many machine learning contexts, scaling the weights so that they sum to 1 leads to identical results.}
+
+\[
+\text{Weighted MSE} = \sum_{i=1}^N w_i\cdot r_i^2
+\] 
+
+Weighted loss functions have been most commonly used in the context of classification problems. \footnote{The loss function for a classification problem would not be MSE, but rather something like cross-entropy which is intended for categorical model output.} When trying to build classification models on highly imbalanced datasets, such as when predicting a very rare disease, it is often desirable to weight the loss function to give more weight to the underrepresented class. For example, in a model of a rare disease where only 1 out of 1 million observed people has the disease, a model could correctly predict 999,999 out of 1 million cases correctly by predicting that nobody has the disease. The model will of course never correctly predict that somebody has the disease, so this is undesirable behavior. Weighting the loss function so that the rare cases contribute more to the total model loss can control for these errors. With continuous response variables, weighted loss functions are used for outlier detection, where iterative schemes identify influential observations and downweight them so they do not have an outsize effect on the final model fit. This is the technique used in various robust regression algorithms.\cite{OLeary-1990-RRC} In this project, weighted MSE loss functions with a continuous response variable will be considered based on purely physical considerations of the problem, not meant to address any outlier issues. This is much less common in the machine learning literature.
+
+\subsubsection{Custom Loss Functions in Environmental Science}
+
+Within wildfire modeling and broader environmental science literature, custom loss functions have been used in a number of cases, but primarily for imbalanced classification tasks as discussed previously. Researchers from the Cooperative Institute for Research in the Atmosphere (CIRA) at Colorado State University published a guide to implementing custom loss functions for environmental science applications in 2021, with a number of applications related to storm detection, generating synthetic radar imagery, and more. \cite{Ebert-2021-GCL} The paper introduces a simple exponentially weighted loss function\footnote{\cite{Ebert-2021-GCL} at Page 7.} which will be used in this project, along with instructions to implement these loss functions in the Tensorflow software library for neural networks.
+
+Detecting wildfires using remote sensing is an active area of research, and machine learning methods of image processing are popular. The problem is often framed as a classification task, where given a grid of pixels in a image, the model classifies each pixel as fire or not fire. Since the goal is early detection of wildfires, when there are fires present the number of fire pixels is very small relative to the overall number of pixels in the image. Thus, this is an imbalanced classification task and weighted loss functions are useful. Yang 2021 and Pande 2021 both use variations of convolutional neural networks for classification with weighted loss functions to address class imbalance \cite{Yang-2021-PFF}\cite{Pande-2021-WSF}.
+
+In a slightly related project, Buch 2022 use a variety of neural network to predict wildfire frequency and burned area in the Western US \cite{Buch-2022-SML}. A custom loss function is used to get the network to minimize the loss over a statistical distribution, rather than minimizing the loss for a single output of the model.
+
+For weighted loss functions specifically related to modeling FMC, researchers have used weighted loss functions when investigating the relationship between FMC and soil moisture. Lu 2021 use a robust regression procedure to downweight influential observations when using satellite observations to model soil moisture and live FMC. \cite{Lu-2021-EMS} Rakmatulina 2021 use a weighted regression scheme when trying to perform inference on the size of the effect of soil moisture on FMC. \cite{Rakhmatulina-2021-SMI}
+
+
+\section{Data}
+\subsection{Data Acquisition}
+
+Real-time weather data from RAWS stations is acquired through Synoptic Weather API, using the python software package SynoticPy developed by Brian Blaylock. \cite{Synoptic}\cite{Blaylock-2023-SP} Synoptic grew out of the University of Utah's MesoWest program, provides a range of atmospheric data services.
+
+For this project, one year\footnote{13 total months were collected. This is because the cross-validation procedure splits training and testing data, so for the full training data to cover a year you need to collect slightly more than 12 months of data. See \ref{app:cv} for more details.} of FMC and weather data was collected from RAWS from May 2023 through May 2024. The geographic area for this study was all RAWS within a spatial bounding box
+\footnote{
+The bounding box is defined as: 
+\begin{itemize}
+    \item Minimum Latitude: $37^\circ$\\
+    \item Maximum Latitude: $46^\circ$\\
+    \item Minimum Longitude: $-111^\circ$\\
+    \item Maximum Longitude: $-95^\circ$ 
+\end{itemize}
+} 
+containing the Rocky Mountain Geographic Area Coordination Center (GACC), as defined by NIFC.\cite{NIFC-GACC} The data was formatted,  filtered\footnote{It is challenging to filter out all erroneous data. RAWS fuel moisture sensors can malfunction or produce errors in ways that are not early filtered algorithmically. See \ref{app:data} for more details.} for erroneous data, and transformed to produce other useful features. Derived features from the data include the moisture equilibria, the day of year, and hour of the day\footnote{From 0-23 based on UTC time. It is a simplifying assumption that hour of the day is consistent across longitude from the East to West. See \ref{app:data} for more details.},
+
+
+All of the features used in this project, along with their units, are presented in Table \ref{tab:all_vars}.
+
+\begin{table}[ht]
+\label{tab:all_vars}
+\centering
+\begin{tabular}{|l|l|}
+\hline
+\textbf{Name}           & \textbf{Units} \\  \hline
+Equilibrium Moisture    & \%             \\ \hline
+Precipitation           & $mm/h$           \\ \hline
+Wind Speed              & $m/s$            \\ \hline
+Solar Radiation         & $kWh/m^2$         \\ \hline
+Elevation         & feet         \\ 
+\hline
+Hour                    & -              \\ 
+\hline
+Day of Year             & -              \\ 
+\hline
+Latitude                & -              \\ 
+\hline
+Longitude               & -              \\ 
+\hline
+
+\end{tabular}
+\caption{All Modeling Variables}
+\end{table}
+
+
+\subsection{Data Exploration}
+
+\begin{table}[ht]
+\centering
+\caption{Basic Summary Statistics for all Data}
+\label{tab:all_dat_summary}
+\begin{tabular}{llll}
+\toprule
+ & Min & Max & Mean \\
+\midrule
+Drying Eq. & 1.04 & 38.06 & 17.74 \\
+Precipitation & 0 & 70.61 & 0.05 \\
+Wind & 0 & 41.13 & 2.65 \\
+Solar Radiation & 0 & 1,245 & 186.30 \\
+Elevation & 1,000 & 11,555 & 6,124.36 \\
+Hour & 0 & 23 & 11.50 \\
+DOY & 1 & 365 & 186.11 \\
+Longitude & 37.09 & 45.92 & 40.93 \\
+Latitude & -110.95 & -95.85 & -104.75 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+In the absence of precipitation, FMC exhibits a diurnal cycle. Moisture is the highest at night when humidity is high and temperatures are low. And moisture is the lowest just after the heat of the day in the early afternoon when humidity is low temperatures are high. Figure \ref{fig:fmc_no_rain} shows this pattern for a RAWS station in Colorado.\footnote{RAWS station ID CHAC2 is in southwest Colorado, at coordinates (37.19944,	-108.48917)} Using the hour of the day as a feature can help machine learning models capture this cyclical pattern. Precipitation causes direct absorption of water by fuels. In Figure \ref{fig:fmc_with_rain}, the FMC increases very quickly just following a rain event.\footnote{Note the y-axis difference between Figures \ref{fig:fmc_no_rain} and \ref{fig:fmc_with_rain}}\footnote{In \ref{fig:fmc_with_rain}, the units of precipitation happen to match up with FMC and thus can share a y-axis label, but this is accidental and wouldn't be the case if the units were converted to inches for example.}
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.8\textwidth]{images/no_rain_plot.png}
+    \caption{FMC over time, no rain.}
+    \label{fig:fmc_no_rain}
+\end{figure}
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.8\textwidth]{images/rain_plot.png}
+    \caption{FMC over time, with rain.}
+    \label{fig:fmc_with_rain}
+\end{figure}
+
+Relative humidity and air temperature have a complicated relationship with FMC. Figure \ref{fig:rh_temp_plot} plots the relationship between these two features and the FMC at RAWS station CHAC2 for a period of observed values.\footnote{A subset of 1,000 hours of data are plotted for clarity.} The observed correlations in these plots correspond to 0.78 and -0.48, respectively. 
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.8\textwidth]{images/rh_temp_plot.png}
+    \caption{FMC over time, with rain.}
+    \label{fig:rh_temp_plot}
+\end{figure}
+
+When relating RH and temperature to equilibrium moisture content, the relationship is much clearer, as can be see in Figure \ref{fig:ep_rh_temp_plot}. The observed correlations in these plots correspond to 0.99 and -0.84, respectively, so the linear relationships are much stronger when using the equilibrium moisture content.
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.8\textwidth]{images/eq_rh_temp_plot.png}
+    \caption{FMC over time, with rain.}
+    \label{fig:ep_rh_temp_plot}
+\end{figure}
+
+As discussed previously, the equilibrium moisture content is the theoretical FMC of a piece of wood if kept in constant atmospheric conditions for a long time. The fuel class, e.g. 10-hour fuel, characterizes how quickly the FMC responds to a change in atmospheric conditions. Figure \ref{fig:eq_plot}
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.8\textwidth]{images/eq_plot.png}
+    \caption{FMC \& equilibrium over time.}
+    \label{fig:eq_plot}
+\end{figure}
+
+\section{Methods}
+
+\subsection{Proposed Loss Functions}
+\subsection{Machine Learning Models}
+\subsection{Model Evaluation}
+\subsubsection{Cross-Validation of Spatiotemporal Models}
+\subsubsection{Loss Function Experimental Design}
+
+\section{Results}
+
+\section{Discussion}
+
+
+
+\newpage
+\bibliographystyle{plain}
+\bibliography{ref/fire,ref/fmc,ref/ml}
+
+
+\appendix
+\section{Data Processing} 
+\label{app:data}
+\input{appendix_data.tex}
+\section{Spatiotemporal Cross-Validation} \label{app:cv}
+\section{Machine Learning Models of FMDA} \label{app:ml}
+
+
+
+\end{document}
