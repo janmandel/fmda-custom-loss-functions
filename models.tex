@@ -1,0 +1,27 @@
+In machine learning, ``tree" based models are a type of architecture used for classification or regression tasks where the data is partitioned some number of steps, and the final model output typically uses a simple average of the response variable value associated with the data partitions. Regression trees thus produce piecewise-constant outputs.
+
+CITE: ESL page 295
+
+The term ``ensemble" in machine learning refers to using many different models and aggregating them together. There are two popular forms of tree-based ensemble models that are both used in this project: random forests and XGBoost.
+
+\subsection*{Linear Regression}
+
+The linear regression model used in this project uses the standard form with a constant intercept term, parameters for each predictor variable, and a random error term. As is standard in statistics, the random error is assumed to be normally distributed with zero mean and unknown variance. 
+
+CITE: ESL Page 44
+
+\subsection*{Random Forest}
+
+Random Forests are a variety of ensemble learner used in both regression and classification tasks. For some number of pre-determined regression trees, a regression tree is built using a random sample of the available predictors is taken. The random sampling used within the model reduces the variance associated with using multiple trees on highly correlated datasets. 
+
+CITE: ESL Page 587
+
+\subsection*{XGBoost}
+
+Boosting refers to a variety of ensemble learning methods where the ensemble members are ``weak learners". In the context of regression trees, a simple regression tree is fit to the data in the first iteration. Subsequent iterations re-weight the data associated with observations that have very large residuals. 
+
+XGBoost is an augmentation of gradient boosting...
+
+CITE: ESL Page 337
+CITE: https://xgboost.readthedocs.io/
+
