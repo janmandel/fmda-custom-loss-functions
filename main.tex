@@ -26,7 +26,7 @@
 \providecommand{\U}[1]{\protect\rule{.1in}{.1in}}
 %EndMSIPreambleData
 \begin{document}
-\title{Custom Loss Functions in Fuel Moisture Modeling}
+\title{DRAFT - July 8th - Custom Loss Functions in Fuel Moisture Modeling}
 \author{
     \begin{tabular}[t]{c}
         Jonathon Hirschi \\
@@ -40,7 +40,7 @@
 \maketitle
 
 \begin{abstract}
-Fuel moisture content (FMC) is a key predictor of predicting wildfire rate of spread (ROS). Machine learning models of FMC are being used more in recent years, augmenting or replacing traditional physics-based approaches. Wildfire ROS has a highly nonlinear relationship with FMC, where small differences in dry fuels lead to large differences in ROS. In this study, custom loss functions that place more weight on dry fuels were examined with a variety of machine learning models of FMC. The models were evaluated with a spatiotemporal cross-validation procedure to examine whether the custom loss functions led to more accurate forecasts of ROS. Results show that the custom loss functions improved accuracy for ROS forecasts by a small, non-statistically-significant amount. Further research would be needed to establish whether the improvement in ROS forecasts leads to more accurate real-time wildfire simulations.
+Fuel moisture content (FMC) is a key predictor of predicting wildfire rate of spread (ROS). Machine learning models of FMC are being used more in recent years, augmenting or replacing traditional physics-based approaches. Wildfire ROS has a highly nonlinear relationship with FMC, where small differences in dry fuels lead to large differences in ROS. In this study, custom loss functions that place more weight on dry fuels were examined with a variety of machine learning models of FMC. The models were evaluated with a spatiotemporal cross-validation procedure to examine whether the custom loss functions led to more accurate forecasts of ROS. Results show that the custom loss functions improved accuracy for ROS forecasts by a small amount. Further research would be needed to establish whether the improvement in ROS forecasts leads to more accurate real-time wildfire simulations.
 \end{abstract}
 
 % Abbreviations section
@@ -355,6 +355,8 @@ Using the data collected from RAWS within the Rocky Mountain GACC, the data was 
 
 
 \section{Results}
+
+The results of the analysis described above showed that there was a small reduction in the prediction accuracy for the weighted loss functions.
 
 \section{Discussion}
 
