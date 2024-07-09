@@ -1,0 +1,35 @@
+
+\subsection*{Linear Regression}
+
+The linear regression model used in this project uses the standard form with a constant intercept term, parameters for each predictor variable, and a random error term. As is standard in statistics, the random error is assumed to be normally distributed with zero mean and unknown variance. Let the response value at time $t$ be $y_t$, the number of predictors be $p$, the $i^{th}$ predictor at time $t$ be $x^{(i)}_t$, the $i^{th}$ parameter be $\beta^{(i)}$, and the random error be the  independent (across all $t$) and identically distributed random variable $\epsilon$ with zero mean and unknown variance $\sigma^2$. The model thus has the mathematical form:
+
+\[
+y_t = \beta^{(0)} + \sum_{i=1}^p \beta^{(i)} x^{(i)}_t + \epsilon, \qquad \epsilon\sim N(0, \sigma^2)
+\]
+
+CITE: ESL Page 44
+
+\subsection*{Tree-based Methods}
+
+In machine learning, ``tree" based models are a type of architecture used for classification or regression tasks where the data is partitioned some number of steps, and the final model output typically uses a simple average of the response variables associated with the data partitions. Regression trees thus produce piecewise-constant outputs.
+
+CITE: ESL page 295
+
+The term ``ensemble" in machine learning refers to using many different models and aggregating them together. There are several motivations for using ensembles, including reducing the variance of the estimator, and across most modeling tasks there are improvements in accuracy when using ensembles as opposed to single trees. There are two popular forms of tree-based ensemble models that are both used in this project: random forests and XGBoost.
+
+\subsubsection*{Random Forest}
+
+Random Forests are a variety of ensemble learner used in both regression and classification tasks. For some predetermined number of trees, a regression tree is built using a bootstrap sample of the training data, subsetted to a random sample of the available predictors. The bootstrapping and random sampling of the predictors used within the model reduces the variance of the estimator. When bootstrap sampling and random feature subsetting is not used, the trees in the ensemble are highly correlated to each other and the model struggles to learn the relationships between the response variable and the predictors. 
+
+CITE: ESL Page 587
+
+\subsubsection*{XGBoost}
+
+Boosting refers to a variety of ensemble learning methods where the individual ensemble members are very simple, so-called ``weak learners", and then an iterative scheme reweights the data on the observations that the weak learners perform poorly on. In the context of regression trees, a simple regression tree is fit to the data in the first iteration. Subsequent iterations re-weight the data associated with observations that have relatively large residuals. 
+
+Extreme gradient boosting, or XGBoost, is an augmentation of gradient boosting that provides computational benefits and additional functionality. Computational benefits of XGBoost relative to standard gradient tree boosting include efficiently handling sparse data with many missing values and support for parallelization. Additional modeling features of XGBoost include regularization of the parameters (i.e. L2 penalty similar to ridge regression).
+
+CITE: ESL Page 337
+CITE: https://xgboost.readthedocs.io/
+
+

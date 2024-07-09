@@ -40,7 +40,7 @@
 \maketitle
 
 \begin{abstract}
-Fuel moisture content (FMC) is a key predictor of predicting wildfire rate of spread (ROS). Machine learning models of FMC are being used more in recent years, augmenting or replacing traditional physics-based approaches. Wildfire ROS has a highly nonlinear relationship with FMC, where small differences in dry fuels lead to large differences in ROS. In this study, custom loss functions that place more weight on dry fuels were examined with a variety of machine learning models of FMC. The models were evaluated with a spatiotemporal cross-validation procedure to examine whether the custom loss functions led to more accurate forecasts of ROS. Results show that the custom loss functions improved accuracy for ROS forecasts by a small amount. Further research would be needed to establish whether the improvement in ROS forecasts leads to more accurate real-time wildfire simulations.
+Fuel moisture content (FMC) is a key predictor of predicting wildfire rate of spread (ROS). Machine learning models of FMC are being used more in recent years, augmenting or replacing traditional physics-based approaches. Wildfire rate of spread (ROS) has a highly nonlinear relationship with FMC, where small differences in dry fuels lead to large differences in ROS. In this study, custom loss functions that place more weight on dry fuels were examined with a variety of machine learning models of FMC. The models were evaluated with a spatiotemporal cross-validation procedure to examine whether the custom loss functions led to more accurate forecasts of ROS. Results show that the custom loss functions improved accuracy for ROS forecasts by a small amount. Further research would be needed to establish whether the improvement in ROS forecasts leads to more accurate real-time wildfire simulations.
 \end{abstract}
 
 % Abbreviations section
@@ -109,7 +109,7 @@ An important concept in FMC modeling is ``equilibrium moisture content". Theoret
 
 The rate of spread (ROS) of a fire is a measure of how quickly fire propogates from a point of origin \cite{NFSC-2024-MFB}. Traditionally, this was measured in chains per hour, but in recent years researchers use the units meters per second. Factors affecting ROS include wind speed \& direction, fuel density and type (e.g. fine twigs versus big logs), and FMC. 
 
-Below are some of the idealized relationships between ROS and some other factors, while holding all else constant. These are model outputs from the physics-based tools within WRF-SFIRE. In this project, the idealized relationship for a category of fuel known as ``closed timber litter" will be used, since it is the most representative of the RAWS fuel moisture sensors of the available fuel categories developed by Anderson 1982. \cite{NIFC-2024-FAF} Figure \ref{fig:ros_other} shows the relationship between ROS and two key predictors: terrain slope\footnote{The units in this plot are tangent of the slope in degrees, so a value of 1 corresponds to $\text{tan} (45^\circ) = 1$} and wind speed. \cite{OpenWFM-2024-HTD} The relationship is approximately linear in both cases.
+Figures \ref{fig:ros_other} and \ref{fig:fmc_ros_fmc} shows the idealized relationships between ROS and some other factors, while holding all else constant. These are model outputs from the physics-based tools within WRF-SFIRE. In this project, the idealized relationship for a category of fuel known as ``closed timber litter" will be used, since it is the most representative of the RAWS fuel moisture sensors of the available fuel categories developed by Anderson 1982. \cite{NIFC-2024-FAF} Figure \ref{fig:ros_other} shows the relationship between ROS and two key predictors: terrain slope\footnote{The units in this plot are tangent of the slope in degrees, so a value of 1 corresponds to $\text{tan} (45^\circ) = 1$} and wind speed. \cite{OpenWFM-2024-HTD} The relationship is approximately linear in both cases.
 
 
 \begin{figure}[ht]
@@ -178,7 +178,7 @@ There are many other potential loss functions for continuous data, such as the t
     \text{Weighted MSE} = \frac{1}{N}\sum_{i=1}^N w_i\cdot r_i^2
 \end{equation}
 
-Weighted loss functions have been most commonly used in the context of classification problems. \footnote{The loss function for a classification problem would not be MSE, but rather something like cross-entropy which is intended for categorical model output.} When trying to build classification models on highly imbalanced datasets, such as when predicting a very rare disease, it is often desirable to weight the loss function to give more weight to the underrepresented class. For example, in a model of a rare disease where only 1 out of 1 million observed people has the disease, a model could correctly predict 999,999 out of 1 million cases correctly by predicting that nobody has the disease. The model will of course never correctly predict that somebody has the disease, so this is undesirable behavior. Weighting the loss function so that the rare cases contribute more to the total model loss can control for these errors. With continuous response variables, weighted loss functions are used for outlier detection, where iterative schemes identify influential observations and downweight them so they do not have an outsize effect on the final model fit. This is the technique used in various robust regression algorithms.\cite{OLeary-1990-RRC} In this project, weighted MSE loss functions with a continuous response variable will be considered based on purely physical considerations of the problem, not meant to address any outlier issues. 
+Weighting the loss function introduces bias into the estimator when considering the accuracy of the predictions. This addition of bias can be beneficial if the variance of the estimator is sufficiently reduced. This dynamic is referred to as the ``bias-variance tradeoff" (CITE ESL pg 37). Weighted loss functions have been most commonly used in the context of classification problems. \footnote{The loss function for a classification problem would not be MSE, but rather something like cross-entropy which is intended for categorical model output.} When trying to build classification models on highly imbalanced datasets, such as when predicting a very rare disease, it is often desirable to weight the loss function to give more weight to the underrepresented class. For example, in a model of a rare disease where only 1 out of 1 million observed people has the disease, a model could correctly predict 999,999 out of 1 million cases correctly by predicting that nobody has the disease. The model will of course never correctly predict that somebody has the disease, so this is undesirable behavior. Weighting the loss function so that the rare cases contribute more to the total model loss can control for these errors. With continuous response variables, weighted loss functions are used for outlier detection, where iterative schemes identify influential observations and downweight them so they do not have an outsize effect on the final model fit. This is the technique used in various robust regression algorithms.\cite{OLeary-1990-RRC} In this project, weighted MSE loss functions with a continuous response variable will be considered based on purely physical considerations of the problem, not meant to address any outlier issues. 
 
 \subsubsection{Custom Loss Functions in Environmental Science}
 
@@ -272,7 +272,7 @@ Relative humidity and air temperature have a complicated relationship with FMC. 
 \begin{figure}[ht]
     \centering
     \includegraphics[width=0.8\textwidth]{images/rh_temp_plot.png}
-    \caption{FMC over time, with rain.}
+    \caption{RH and Temperature relationship with FMC.}
     \label{fig:rh_temp_plot}
 \end{figure}
 
@@ -281,7 +281,7 @@ When relating RH and temperature to equilibrium moisture content using the Equat
 \begin{figure}[ht]
     \centering
     \includegraphics[width=0.8\textwidth]{images/eq_rh_temp_plot.png}
-    \caption{FMC over time, with rain.}
+    \caption{RH and Temperature relationship with Drying Equilibrium.}
     \label{fig:eq_rh_temp_plot}
 \end{figure}
 
@@ -307,10 +307,10 @@ The purpose of the custom loss functions used in this project is to place more w
 
 \begin{equation}
     \label{eq:wloss}
-    \text{Exponentially Weighted MSE} = \frac{1}{N}\sum_{i=1}^N \exp(-\omega y_i)\cdot (y_i - \hat y_i)
+    \text{Exponentially Weighted MSE} = \frac{1}{N}\sum_{i=1}^N \exp(-\omega y_i)\cdot (y_i - \hat y_i)^2
 \end{equation}
 
-The parameter $\omega$ represents the strength of the weighting scheme relative to an unweighted MSE. When $\omega = 0$, $w_i = 1$ and Equation \ref{eq:wmse} reduces to the standard MSE defined in Equation \ref{eq:mse}. As $\omega$ increases, model residuals associated with larger values of $y_i$, or for wetter fuels, are multiplied by a smaller weight and thus contribute less to the overall model loss. Figure \ref{fig:weights} shows the weighting scheme for various values of $\omega$, ranging from $0$ to $0.5$. The ROS curve is plotted together with these exponential weighting curves for comparison.\footnote{Note: in the right side of Figure \ref{fig:weights}, the ROS curve is rescaled.} 
+The parameter $\omega$ represents the strength of the weighting scheme relative to an unweighted MSE. When $\omega = 0$, $w_i = 1$ for all $i$, and Equation \ref{eq:wmse} reduces to the standard MSE defined in Equation \ref{eq:mse}. As $\omega$ increases, model residuals associated with larger values of $y_i$ (wetter fuels) are multiplied by a smaller weight and thus contribute less to the overall model loss. Figure \ref{fig:weights} shows the weighting scheme for various values of $\omega$, ranging from $0$ to $0.5$. The line labeled ``Equal Weight" corresponds to the standard MSE and applies a weight of 1 for all residuals in the loss function. The dotted and dashed lines represent the weights used by the exponential weighting schemes. The $\omega$ parameter is the constant in the exponential equation, and as that parameter increases,\footnote{Note the exponential is defined to be negative, so as $\omega$ increases, the exponential has a decreasing negative power.} less weight is given to residuals associated with higher observed values of FMC. The ROS curve is plotted together with these exponential weighting curves for comparison.\footnote{Note: in the right side of Figure \ref{fig:weights}, the ROS curve is rescaled.} 
 
 
 For this project, the following loss functions will be compared:
@@ -353,13 +353,30 @@ In this project, the data was split into training and test sets in the following
 
 Using the data collected from RAWS within the Rocky Mountain GACC, the data was split into training and testing periods using the process described in the previous section. A total of twelve loss functions were considered: the standard MSE, ten weighted schemes with varying $\omega$ parameters, and one with weights determined directly from the ROS transformation of FMC. For each of the twelve loss functions, the three machine learning models described previously were fit to the training set and the fitted model was used to predict new values in the test set. This process is repeated 5 times in order to get different random samples of locations to use in the test set. The model accuracy is calculated by comparing the predicted FMC in the test set to the observed FMC through the root mean squared error (RMSE). The RMSE is useful since it is interpretable in the same units as the response variable, so a RMSE of 4 can be interpreted as the model having on average a 4\% error in the FMC. This process is repeated 5 times in order to get different random samples of locations to use in the test set. 
 
-
 \section{Results}
 
 The results of the analysis described above showed that there was a small reduction in the prediction accuracy for the weighted loss functions.
 
+To compare the RMSE of predictions from the models trained with different loss functions, the different time periods used for training and testing are considered to be independent realizations of the same data generating process. In other words, the RMSE for the various test periods are aggregated to calculate a mean and standard error of the RMSE. Figure \ref{fig:results1} shows the results aggregated over the time periods. The dots represent the mean RMSE, and the vertical line the standard error of the mean RMSE. On the x-axis, the label ``exp\_0.01" corresponds to the exponentially weighted loss function with weight $w_i = \exp(-0.01\cdot y_i)$, where $y_i$ is the $i^{th}$ response value. The vertical dashed line in the plot is meant to distinguish the ROS weighting scheme from the others. The other loss functions are a continuum; the ``MSE" corresponds to an $\omega$ parameter of zero, and then the $\omega$ parameter increases across the x-axis until ``exp\_0.25", which corresponds to $\omega=0.25$. The weighting scheme using the ROS curve is separate from this continuum. The left side of Figure \ref{fig:results1} shows the results of the trained models when predicting the untransformed FMC values. The right side shows the results of the models when predicting the transformed ROS response.
+
+The results for predicting ROS show a U-shaped curve for the weighted loss functions,\footnote{Again, note that the ROS category is not part of this continuum.} where a small amount of weighting of the residuals led to a smaller test RMSE, but when the strength of the weighting scheme increases the accuracy deteriorates. The exponential weighting scheme with $\omega = 0.0367$ resulted in the smallest test RMSE for ROS predictions. These results were small, however, representing just over a 1\% reduction in the RMSE compared to the standard MSE loss function, and the results were not statistically significant.\footnote{A two-sample t-test resulted in a p-value of roughly 0.54.} Visually this can be seen the the strong overlap between the standard errors of the means.\footnote{The vertical lines representing standard error overlap.} The RMSE using the ROS for weights had similar very similar results to the minimum RMSE results from the $\omega = 0.0367$ weighting scheme. Figure \ref{fig:results2} in Appendix \ref{app:res} shows the results broken down by machine learning model. The pattern is similar for the different models, supporting the idea that conclusions can be drawn about the loss functions themselves.
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=1\textwidth]{images/results1.png}
+    \caption{Forecast RMSE Results.}
+    \label{fig:results1}
+\end{figure}
+
 \section{Discussion}
 
+The results for the RMSE of the FMC values was unexpected. The MSE as a loss function did not result in the lowest MSE in the test set. Using biased estimators by weighting the loss function resulted in slightly lower RMSE on the test set. A hypothesis to explain this relates to the effect of rain. As was shown in 
+
+This analysis shows that weighted loss functions can produce at least as accurate results as a standard MSE loss function for machine learning models of FMC, when looking at both the prediction accuracy of FMC itself, and of the transformation to ROS. While it cannot be concluded from this analysis that the weighted loss functions actually improved forecast accuracy for ROS, this analysis provides a hint of a signal that this might be useful if applied to real wildfire simulations. If the estimate of a roughly 1\% reduction in error of ROS were true, that might provide a meaningful improvement in wildfire simulations.
+
+A number of simplification were used in this analysis. In real-time simulations of wildfires, ROS is a complicated function of local environmental conditions, such as terrain slope. It is not clear how weighted loss functions would perform under more realistic conditions for estimating ROS. The machine learning models used in this report were also not subjected to exhaustive hyperparameter search schemes, and more finely tuned models might intereact with the loss functions differently. Additionally, the models used in this report were static, meaning the time dependence of the system was not explicitly modeled. 
+
+Future research could apply the weighting scheme to RNNs or autoregressive models to examine the effect on forecast accuracy. One attractive feature about the weighted loss functions used in this analysis is that they are easy to implement in modern machine learning software packages.\footnote{The neural network software library Tensorflow, for example, has a parameter ``sample\_weight" that easily adds weighting to the standard MSE loss function.} A longer-term goal would be to run multiple real wildfire simulations, using a platform like WRF-SFIRE, with different estimates of FMC produced by models using different loss functions.
 
 
 \newpage
@@ -374,7 +391,16 @@ The results of the analysis described above showed that there was a small reduct
 % \section{Spatiotemporal Cross-Validation} \label{app:cv}
 \section{Machine Learning Models of FMDA} 
 \label{app:ml}
-\input{models.tex}
+\input{appendix_models.tex}
 
+\section{Further Results}
+\label{app:res}
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=1\textwidth]{images/results2.png}
+    \caption{Forecast RMSE Results, by Model.}
+    \label{fig:results2}
+\end{figure}
 
 \end{document}
