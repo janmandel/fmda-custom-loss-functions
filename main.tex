@@ -1,7 +1,7 @@
 % Required for inserting images
 
 \documentclass[11pt]{article}%
-% \usepackage[conf]{ametsoc}  
+\usepackage[conf]{ametsoc}  
 \usepackage{graphicx}
 \usepackage{amsmath}
 \usepackage{amsfonts}
@@ -11,8 +11,11 @@
 \usepackage{subcaption}
 \usepackage{booktabs}
 \usepackage{appendix}
-\usepackage{url}%
+% \usepackage{url}%
+\usepackage{xurl}
 \usepackage{tikz}
+\usepackage{perpage}
+\MakePerPage{footnote}
 \setcounter{MaxMatrixCols}{30}
 \setlength{\parindent}{0pt}
 \setlength{\parskip}{1em}
@@ -26,7 +29,8 @@
 \providecommand{\U}[1]{\protect\rule{.1in}{.1in}}
 %EndMSIPreambleData
 \begin{document}
-\title{DRAFT - July 8th - Custom Loss Functions in Fuel Moisture Modeling}
+\tolerance=9999 \pretolerance=9999
+\title{Custom Loss Functions in Fuel Moisture Modeling}
 \author{
     \begin{tabular}[t]{c}
         Jonathon Hirschi \\
@@ -36,7 +40,7 @@
     \end{tabular}
 }
 
-\date{Summer 2024}
+\date{July 22, 2024}
 \maketitle
 
 \begin{abstract}
@@ -44,7 +48,7 @@ Fuel moisture content (FMC) is a key predictor for wildfire rate of spread (ROS)
 \end{abstract}
 
 % Abbreviations section
-\subsection*{Key Terms and Abbreviations}
+\textbf{Key Terms and Abbreviations}
 \begin{itemize}
     \item \textbf{FMC:} Fuel Moisture Content, a ratio interpretable as a percentage of the weight of water in a stick relative to the weight of the stick.
     \item \textbf{ROS:} Fire Rate of Spread, units of meters per second.
@@ -59,29 +63,32 @@ Fuel moisture content (FMC) is a key predictor for wildfire rate of spread (ROS)
 \newpage
 
 \section{Background}
+
+The goal of this project is to modify the way that machine learning models of FMC are typically developed in order to produce more accurate predictions of wildfire ROS. Custom loss functions that place more weight on dry fuels will be proposed. These loss functions are hypothesized to improve the accuracy of machine learning models at predicting wildfire ROS. In this section, the importance of wildfire modeling and the key inputs to the models will be discussed. Then there will be a discussion of background information on machine learning models and loss functions.
+
 \subsection{Wildfires and Climate Change}
 
-Wildfires impact our lives in many ways, including destruction of property and public health effects. Toxic gases and harmful particulate matter emitted from wildfires pose a threat to air quality and human health \cite{WHO-2024-WFS}. Wildfires also affect water quality by depositing metals and other toxins into waterways and contributing to erosion and flooding \cite{USGS-2024-WQA}. The U.S. Congress Joint Economic Committee estimated that total monetary costs of wildfires is between \$394 billion and \$893 billion after accounting for affects of burned structures, smoke impacts, watershed damage, etc. \cite{JEC-2023-CEW}.
+Wildfires impact our lives in many ways, including destruction of property and public health effects. Toxic gases and harmful particulate matter emitted from wildfires pose a threat to air quality and human health \citep[e.g.,][]{WHO-2024-WFS}. Wildfires also affect water quality by depositing metals and other toxins into waterways and contributing to erosion and flooding \citep{USGS-2024-WQA}. The U.S. Congress Joint Economic Committee estimated that total monetary costs of wildfires as of 2022 is between \$394 billion and \$893 billion per year after accounting for numerous effects from wildfires, including burned structures, smoke impacts, watershed damage, etc. \citep{JEC-2023-CEW}.
 
-There are complicated interactions between the environment, human activity, and wildfires. Some important weather patterns make fires more prevalent and more severe when they do ignite. Drought is considered the “dominant driver of fire emissions” \cite{IPCC-2021-LCI} because dry vegetation provides the needed fuel for fires. Both the lack of precipitation and lower air humidity contribute to dry fuels. Wind is another key factor in fire activity. Strong winds dry out fuels, making fires more likely to ignite, and once fires are underway wind feeds the fire oxygen and physically spreads the flames, thus increasing wildfire spread \cite{Richardson-2022-GIW}. Human activity can increase the prevalence and intensity of fires. Wildfires are often started by downed power lines, fireworks, or other human causes. Additionally, land management practices, including fire exclusion practices,\footnote{``Fire exclusion" refers to a land management practice where all fire is deliberately stopped and prevented. This results in a buildup of fuels. In some areas this practice is referred to as ``fire suppression", but in other areas that term is used for any attempts to combat the spread of an active fire.} have increased the risk of large ``mega-fires" \cite{Williams-2013-EOH}. Other human activity can decrease the intensity of wildfires, such as prescribed burns which prevent the buildup of fuels that cause mega-fires.
+Climate change is projected to increase the frequency and severity of wildfires, caused primarily by higher temperatures and less frequent precipitation. There is clear evidence that the changes predicted by climate models are already underway. Since the early 1980s, there has been a drastic increase in the number, size, and intensity of wildfires throughout the Western United States \citep{Cartier-2022-UFQ}. The total burned area has increased, and more areas of the world are susceptible to fires \citep{IPCC-2021-LCI}. The three largest fires in Colorado’s history all occurred in 2020 \citep{CDFPC-2024-HWI}. Wildfires are also more frequent overall and more common throughout the year, even during months that traditionally were wetter and less prone to ignition. The Intergovernmental Panel on Climate Change (IPCC) reports that “fire weather season has already lengthened by 18.7\% globally between 1979 and 2013” \citep{IPCC-2021-LCI}. Traditionally, the months of May through September were considered Colorado’s fire season \citep{WFCA-2023-CFS}. However, the most destructive wildfire in Colorado’s history, the Marshall Fire, occurred outside of Boulder in December of 2021 \citep{CDFPC-2024-HWI}.
 
+There are complicated interactions between the environment, human activity, and wildfires. Some important weather patterns make fires more prevalent and more severe when they do ignite. Drought is considered the “dominant driver of fire emissions” \citep{IPCC-2021-LCI}, because dry vegetation provides the needed fuel for fires. Both the lack of precipitation and lower air humidity contribute to dry fuels. Wind is another key factor in fire activity. Strong winds dry out fuels, making fires more likely to ignite, and once fires are underway wind feeds the fire oxygen and physically spreads the flames, thus increasing wildfire spread \citep{Richardson-2022-GIW}. Human activity can increase the prevalence and intensity of fires. Wildfires are often started by downed power lines, fireworks, or other human causes. Additionally, land management practices, including fire exclusion practices,\footnote{``Fire exclusion" refers to a land management practice where all fire is deliberately stopped and prevented. This results in a buildup of fuels. In some areas this practice is referred to as ``fire suppression", but in other areas that term is used for any attempts to combat the spread of an active fire.} have increased the risk of large ``mega-fires" \citep{Williams-2013-EOH}. Other human activity can decrease the intensity of wildfires, such as prescribed burns which prevent the buildup of fuels that cause mega-fires.
 
-Climate change is projected to increase the frequency and severity of wildfires, caused primarily by higher temperatures and less frequent precipitation. There is clear evidence that the changes predicted by climate models are already underway. Since the early 1980s, there has been a drastic increase in the number, size, and intensity of wildfires throughout the Western United States \cite{Cartier-2022-UFQ}. The total burned area has increased, and more areas of the world are susceptible to fires \cite{IPCC-2021-LCI}. The three largest fires in Colorado’s history all occurred in 2020 \cite{CDFPC-2024-HWI}. Wildfires are also more frequent overall and more common throughout the year, even during months that traditionally were wetter and less prone to ignition. The IPCC  reports that “fire weather season has already lengthened by 18.7\% globally between 1979 and 2013” \cite{IPCC-2021-LCI}. Traditionally, the months of May through September were considered Colorado’s fire season \cite{WFCA-2023-CFS}. However, the most destructive wildfire in Colorado’s history, the Marshall Fire, occurred outside of Boulder in December of 2021. \cite{CDFPC-2024-HWI} 
-
+Given the substantial impacts of wildfires, researchers are trying to understand wildfires and make predictions about how they will behave. Mathematical and statistical modeling can assist with wildfire prevention by identifying areas that are susceptible to major fires. This information can be used to produce wildfire risk warnings to the public. Also, this can help focus resources used for controlled burns or other mitigation efforts in the areas where it is needed most. Finally, when wildfires are actively burning, models can inform where the fire will spread and where harmful emissions might travel. Accurate models of wildfire dynamics can therefore help save money and save lives.
 
 \subsection{Fuel Moisture Content}
 
-Fuel moisture content (FMC) is a critical component of wildfire susceptibility and fire spread. It is a measure of the water content in vegetation, and is expressed as a percentage of the ``dry weight" of the fuel. \cite{NCEI-2024-DFM} The dry weight is what the fuel would weigh when entirely dried out. In practice, sticks of wood are dried out in kilns and weighed to determine the dry weight. An FMC of 0\% would be completely dry fuel, and FMC values can range over 100\% if the total weight of the water is greater than the dry weight of the plant material. The formula for FMC is:
+Fuel moisture content (FMC) is a critical component of wildfire susceptibility and fire spread. It is a measure of the water content in vegetation, and is expressed as a percentage of the ``dry weight" of the fuel \citep{NCEI-2024-DFM}. The dry weight is what the fuel would weigh when entirely dried out of all moisture. In practice, sticks of wood are dried out in kilns and weighed to determine the dry weight. An FMC of 0\% would be completely dry fuel, and FMC values can range over 100\% if the total weight of the water is greater than the dry weight of the plant material. The formula for FMC is:
 
 \begin{equation}
     \text{FMC} (\%) = \frac{\text{Fuel Weight} - \text{Dry Weight}}{\text{Dry Weight}} \cdot 100\%
 \end{equation}
 
-Dry fuels burn more readily, and wetter fuels burn more slowly or not at all. Atmospheric conditions affect FMC in a variety of ways. Temperature is a key component of FM; warmer temperatures dry out fuels, with other factors being held constant. Relative humidity (RH) is another key component of FM; more moisture in the air generally leads to more moisture in fuels. Higher wind speeds lead to drier fuels. Finally, solar radiation dries out fuels. Cloudy days with little direct solar radiation will generally lead to higher FMC conditions \cite{NWCG-2024-FWP}. It is important to note that these atmospheric conditions relate to each other in complicated ways. For example, higher temperatures can cause lower RH and are also associated with stronger solar radiation, all of which lead to lower FM. However, higher temperatures can cause more evaporation and lead to increases in precipitation, which in turn increases FM. 
+Dry fuels burn more readily, and wetter fuels burn more slowly or not at all. Atmospheric conditions affect FMC in a variety of ways. Temperature is a key component of FMC; warmer temperatures dry out fuels, with other factors being held constant. Relative humidity (RH) is a measure of water content in the air, and is another key component of FMC; more moisture in the air generally leads to more moisture in fuels. Higher wind speeds lead to drier fuels. Finally, solar radiation also dries out fuels. Cloudy days with little direct solar radiation will generally lead to higher FMC conditions \citep{NWCG-2024-FWP}. It is important to note that these atmospheric conditions relate to each other in complicated ways. For example, higher temperatures can cause lower RH and are also associated with stronger solar radiation, all of which lead to lower FMC. However, higher temperatures can cause more evaporation and lead to increases in precipitation, which in turn increases FMC.
 
-Researchers typically model dead FMC, or the water content of dead vegetation, separately from the FMC of living plants.\footnote{In practice, the dead FMC models are used as an input into the live FMC forecasts. In WRF-SFIRE and elsewhere, the dead FMC model is adjusted to provide estimates of live FMC based on biological factors of the plant.} This is due to several factors. Living plants try to maintain homeostasis, so they resist large fluctuations in moisture caused by atmospheric conditions. The water content of dead fuel, on the other hand, responds readily to atmospheric conditions and therefore there can be large fluctuations that are relevant to wildfire spread. Additionally, live fuels are thought of as composites of various fuel types. A sagebrush, for example, has woody material of various diameters as well as herbaceous material. These various materials retain moisture in different ways and respond to fire differently \cite{NWCG-2024-FWP}. In this project, only dead fuel moisture will be considered. 
+Researchers typically model dead FMC, or the water content of dead vegetation, separately from the FMC of living plants.\footnote{In practice, the dead FMC models are used as an input into the live FMC forecasts. In wildfire modeling software platforms like WRF-SFIRE and elsewhere, the dead FMC model is adjusted to provide estimates of live FMC based on biological factors of plant material.} This is due to several factors. Living plants try to maintain homeostasis, so they resist large fluctuations in moisture caused by atmospheric conditions. The water content of dead fuel, on the other hand, responds readily to atmospheric conditions and there can be large fluctuations in FMC that are relevant to wildfire spread. Additionally, live fuels are thought of as composites of various fuel types. A sagebrush, for example, has woody material of various diameters as well as herbaceous material. These various materials retain moisture in different ways and respond to fire differently \citep{NWCG-2024-FWP}. 
 
-Dead fuel moisture is divided into different classes based on how quickly the material responds to changes in atmospheric conditions. These include 1-hour, 10-hour, 100-hour, and 1,000-hour fuels \cite{NCEI-2024-DFM}. Table \ref{tab:classes} shows the sizes of these fuel classes. A 1-hour fuel, very small twigs for example, will get wetter quickly when exposed to precipitation, while a 1,000-hour fuel, such as a fallen log, would take much longer to absorb precipitation and thus the FMC changes slower. The classes are defined by the lag time which determines how quickly the fuel responds to a change in atmospheric conditions. A 10-hour class fuel approaches the equilibrium as $\exp(-t/10)$, where $t$ is the time in hours.
+Dead fuel moisture is divided into different classes based on how quickly the material responds to changes in atmospheric conditions. These include 1-hour, 10-hour, 100-hour, and 1,000-hour fuels \citep{NCEI-2024-DFM}. Table \ref{tab:classes} shows the sizes of these fuel classes. A 1-hour fuel, very small twigs for example, will get wetter quickly when exposed to precipitation, while a 1,000-hour fuel, such as a fallen log, would take much longer to absorb precipitation and thus the FMC changes more slowly. The fuel classes are defined by the lag time which determines how quickly the fuel responds to a change in atmospheric conditions. A 10-hour class fuel approaches a theoretical equilibrium moisture as $\exp(-t/10)$, where $t$ is the time in hours.
 
 \begin{table}[ht]
 \centering
@@ -94,39 +101,27 @@ Dead fuel moisture is divided into different classes based on how quickly the ma
 10-hour    & 1/4 - 1 in.             \\ \hline
 100-Hour   & 1-3 in.\\ \hline
 1000-Hour   & 3-8 in.\\ \hline
-\hline
+
 
 \end{tabular}
 \end{table}
 
-The National Interagency Fire Center (NIFC) operates Remote Automatic Weather Stations (RAWS) across the country to measure hourly FMC and other associated environmental variables \cite{NIFC-2024-RAW}. Figure \ref{fig:wfas_raws} shows the location of all RAWS with FMC sensors.
-
-\begin{figure}[ht]
-    \centering
-    \includegraphics[width=0.8\textwidth]{images/WFAS-RAWS-map.png}
-    \caption{All RAWS FMC locations.}
-    \label{fig:wfas_raws}
-\end{figure}
-
-These RAWS stations\footnote{The ``S" in RAWS stands for station, so this is redundant terminology. It is an aesthetic preference that this terminology is more clear.} have sensors for 10-hour fuels, which consist of a 1/2 inch pine dowel with a moisture probe inside of it \cite{Campbell-2017-RMM}. Observations of 1-hour or 100-hour fuels are typically done through field observations. But for real-time FMC modeling, 10-hour fuels are the only type of fuel moisture with substantial data availability. In this project, dead 10-hour fuels will be examined for this reason.
-
-An important concept in FMC modeling is ``equilibrium moisture content". Theoretically, if environmental conditions are kept stable for a long period of time, the FMC of wood will equilibrate to its surroundings. The equilibrium FMC is the theoretical value that the FMC would approach over time, and it is calculated from relative humidity and temperature \cite{Mitchell-2018-CEM}. There are slightly different physical processes when fuels dry out or get wet, so researchers have developed the ``wetting equilibrium" and ``drying equilibrium" to establish what the equilibrium moisture content is for fuels under these two different scenarios \cite{Mandel-2014-RAA}. These variables are constructed from relative humidity (RH) and temperature\footnote{Units of degrees Kelvin.} (temp) in the following formulas:
-
+An important concept in FMC modeling is ``equilibrium moisture content". The equilibrium moisture content is an important predictor of FMC in a variety of physics-based and machine learning models. Theoretically, if environmental conditions are kept stable for a long period of time, the FMC of wood will equilibrate to its surroundings. The equilibrium FMC is the theoretical value that the FMC would approach over time, and it is calculated from relative humidity and temperature \citep[e.g.,][]{Mitchell-2018-CEM}. There are slightly different physical processes when fuels dry out versus when they absorb moisture, so researchers have developed the ``wetting equilibrium" and ``drying equilibrium" to establish what the equilibrium moisture content is for fuels under these two different scenarios \citep{Mandel-2014-RAA}. These variables are constructed from relative humidity RH (\%) \footnote{Note that RH is a ratio and can thus be considered unitless. In this project, RH will be considered to have units of percent for clarity.} and temperature T (K) in the following formulas:
 
 
 \begin{equation}
 \label{eq:equil}
 \begin{split}
-\text{Wetting Equilibrium} = &0.924\cdot\text{rh}^{0.679} + 0.000499\cdot\exp(0.1\cdot\text{rh}) + \\ &0.18\cdot(21.1 + 273.15 - \text{temp})\cdot(1 - \exp(-0.115\cdot\text{rh})) \\
-\text{Drying Equilibrium} = &0.618\cdot\text{rh}^{0.753} + 0.000454\cdot\exp(0.1\cdot\text{rh}) + \\ &0.18\cdot(21.1 + 273.15 - \text{temp})\cdot(1 - \exp(-0.115\cdot\text{rh}))
+\text{Wetting Equilibrium} = &0.924\cdot\text{RH}^{0.679} + 0.000499\cdot\exp(0.1\cdot\text{RH}) + \\ &0.18\cdot(21.1 + 273.15 - \text{T})\cdot(1 - \exp(-0.115\cdot\text{RH})) \quad (\%)\\
+\text{Drying Equilibrium} = &0.618\cdot\text{RH}^{0.753} + 0.000454\cdot\exp(0.1\cdot\text{RH}) + \\ &0.18\cdot(21.1 + 273.15 - \text{T})\cdot(1 - \exp(-0.115\cdot\text{RH}))\quad (\%)
 \end{split}
 \end{equation}
 
 \subsection{Wildfire Rate of Spread}
 
-The rate of spread (ROS) of a fire is a measure of how quickly fire propogates from a point of origin \cite{NFSC-2024-MFB}. Traditionally, this was measured in chains per hour, but in recent years researchers use the units meters per second. Factors affecting ROS include wind speed and direction, topographic slope, fuel density and type (e.g. fine twigs versus big logs), and FMC. 
+The rate of spread (ROS) of a fire is a measure of how quickly fire propagates from a point of origin \citep[e.g.,][]{NFSC-2024-MFB}. Traditionally, this was measured in ``chains" per hour, where a chain is an antiquated unit of measurement corresponding to about 66ft. In recent years researchers use the units meters per second. Factors affecting ROS include wind speed and direction, topographic slope, fuel density and type (e.g. fine twigs versus big logs), and FMC. The ROS is meant to characterize actively burning fires, but the concept can be applied to how quickly a theoretical fire would propagate given the fuel properties at that location. 
 
-Figures \ref{fig:ros_other} and \ref{fig:fmc_ros_fmc} shows the idealized relationships between ROS and some other factors, while holding all else constant. These are model outputs from the physics-based tools within WRF-SFIRE. In this project, the idealized relationship for a category of fuel known as ``closed timber litter" will be used, since it is the most representative of the RAWS fuel moisture sensors of the available fuel categories developed by Anderson in 1982. \cite{NIFC-2024-FAF} Figure \ref{fig:ros_other} shows the relationship between ROS and two key predictors: terrain slope\footnote{The units in this plot are tangent of the slope in degrees, so a value of 1 corresponds to $\text{tan} (45^\circ) = 1$} and wind speed. \cite{OpenWFM-2024-HTD} The relationship is approximately linear in both cases.
+Figure \ref{fig:ros_other} shows the idealized relationships between ROS and some important predictors other than FMC, while holding all else constant. These are model outputs from the physics-based tools within the wildfire modeling software project WRF-SFIRE, which will be described in greater detail later. Different fuels burn differently and will thus have difference relationships between FMC and ROS. Figure \ref{fig:ros_other} shows the relationship between ROS and two key predictors: terrain slope\footnote{The units in this plot are tangent of the slope in degrees, so a value of 1 corresponds to $\text{tan} (45^\circ) = 1$} and wind speed. \cite{OpenWFM-2024-HTD} The relationship is approximately linear in both cases.
 
 
 \begin{figure}[ht]
@@ -144,135 +139,123 @@ Figures \ref{fig:ros_other} and \ref{fig:fmc_ros_fmc} shows the idealized relati
     \label{fig:ros_other}
 \end{figure}
 
+In this project, the idealized relationship for a category of fuel known as ``closed timber litter" will be used, since it is the most representative of the widely available FMC sensors out of the available fuel categories used by researchers. Developed by Anderson in 1982, wildfire researchers often use categories of fuels, which are grouped together by environmental considerations and have characteristic burning properties \citep{NIFC-2024-FAF}. Like all fuel types used by researchers, closed timber litter is a mixture of various fuel classes. Within WRF-SFIRE, closed timber litter is composed of 71\% 10-h dead fuels and 29\% 1-h dead fuels (0.115 $lb/ft^2$ and .046$lb/ft^2$, respectively). This is the largest ratio of pure 10-h fuels of the 13 fuel types used within WRF-SFIRE.
 
-The relationship between ROS and FMC, however, is highly nonlinear, as seen in Figure \ref{fig:fmc_ros_fmc}. Small differences in the dry region of the plot, from 0\% to around 5\%, lead to very large changes in the resulting ROS. For the wetter region of the plot, the relationship with ROS is approximately flat until it reaches a ``moisture of extinction", where fire will not spread at all. This nonlinear relationship is of primary interest in this research project. 
+The relationship between ROS and FMC is highly nonlinear. Figure \ref{fig:fmc_ros_0wind} shows the relationship between FMC and ROS with zero wind and zero slope. Small differences in the dry region of the plot, from 0\% to around 5\%, lead to very large changes in the resulting ROS. For the wetter region of the plot, the relationship with ROS is approximately flat until it reaches a ``moisture of extinction", where fire will not spread at all. This nonlinear relationship is of primary interest in this research project. 
 
-\begin{figure}[ht]
+\begin{figure}[p]
     \centering
-    \includegraphics[width=0.8\textwidth]{images/fuel8_ros_fm.png}
-    \caption{ROS vs FMC relationship.}
-    \label{fig:fmc_ros_fmc}
+    \includegraphics[width=0.8\textwidth]{images/fuel8_ros_fm_0wind.png}
+    \caption{ROS vs FMC relationship, 0 wind.}
+    \label{fig:fmc_ros_0wind}
+\end{figure}
+
+The relationship between FMC and ROS is much more pronounced in the presence of wind. Figure \ref{fig:fmc_ros_3wind} shows the relationship between FMC and ROS when wind speed is 3m/s. Notice the values of ROS in the y-axis are much higher than in Figure \ref{fig:fmc_ros_0wind}. In the dataset collected for this project, which will be discussed in detail in Section \ref{sec:data}, the average wind speed was roughly 2.9m/s. Thus, in this project the curve shown in Figure \ref{fig:fmc_ros_3wind} will be used as a function to transform FMC observations into theoretical ROS values. It should be noted that this is a simplification of the reality of the relationship between FMC and ROS.
+
+\begin{figure}[p]
+    \centering
+    \includegraphics[width=0.8\textwidth]{images/fuel8_ros_fm_3wind.png}
+    \caption{ROS vs FMC relationship, 3m/s wind.}
+    \label{fig:fmc_ros_3wind}
 \end{figure}
 
 \subsection{Fuel Moisture Modeling}
+
 \subsubsection{History and Physics-based Methods}
+\hfill
 
-Rothermel in 1972 developed a mathematical model of wildfire spread, based on physical properties of heat transfer, that included fuel moisture as one of the key parameters \cite{Rothermel-1972-MMP}. This model has been used and built upon by wildfire researchers for decades. 
+Researchers studying wildfires have traditionally used physics-based models that try to represent wildfire behavior from physical first-principles, such as properties of radiative flux and heat transfer. A seminal model developed by \cite{Rothermel-1972-MMP} is a mathematical model of wildfire spread based on physical properties of heat transfer. This model includes fuel moisture as one of the key parameters. This model has been used and built upon by wildfire researchers for decades. 
 
-WRF-SFIRE is a real-time forecasting project for wildfires which combines an extensive set of mathematical methods and data processing techniques \cite{OpenWFM-2024-HTD}. Within WRF-SFIRE, there is a physical model of FMC developed by Mandel et al. (2014), which uses theoretical physical properties of wetting and drying, combined with data assimilation through the augmented Kalman filter \cite{Mandel-2014-RAA}. The core differential equation in the model uses wetting equilibrium moisture, drying equilibrium moisture, and precipitation and as data inputs.
+Principles of Rothermel's original model are used in WRF-SFIRE, a real-time forecasting project for wildfires which combines an extensive set of mathematical methods and data processing techniques \citep{OpenWFM-2024-HTD}. There is also a set of software tools to retrieve and format data for WRF-SFIRE called ``wrfxpy".\footnote{The code for wrfxpy is publicly available on github: \url{https://github.com/openwfm/wrfxpy}} Within wrfxpy, there is a physical model of FMC developed by \citet{Mandel-2014-RAA}, which uses theoretical physical properties of wetting and drying, combined with data assimilation through the augmented Kalman filter \citep{Vejmelka-2016-DAD}. The core differential equation in the model uses wetting equilibrium moisture, drying equilibrium moisture, and precipitation and as data inputs. The outputs of this physical model of FMC are fed into the WRF-SFIRE system for real-time wildfire simulations.
 
-Many other physics-based models of FMC have been developed. All use some combination of relative humidity, temperature, and precipitation to estimate FMC from physical principles, and typically field observations of FMC are used to tune parameters. \cite{Catchpole-1999-EFR,Nelson-2000-PDC, vanderKamp-2017-MFS}
+Many other physics-based models of FMC have been developed. All include some combination of relative humidity, temperature, and precipitation to estimate FMC from physical principles. Also, field observations of FMC are used to tune ``parameters", or constant values, used within the physical models \citep{Catchpole-1999-EFR,Nelson-2000-PDC, vanderKamp-2017-MFS}.  Currently, the most widely used wildfire modeling tools still rely on physics-based models, and modern machine learning attempts are only beginning to impact the field within recent years.
 
 \subsubsection{Machine Learning models of FMC}
+\hfill
 
-With modern advances in computing and more extensive observed FMC data, machine learning models of FMC have become more popular. Machine learning is a general term for statistical models that are trained on observed data and used to predict new, unobserved data. The models researchers have considered have commonly included some form of linear regression, random forests, or XGBoost.\footnote{See Methods section for more detail on these model architectures.} These models are not recursive\footnote{A recursive model in this sense is any that models the FMC at a given time as a function of the FMC at previous times.} in time, meaning that the models are mapping observed weather conditions to the response variable of FMC at each instance of time without explicitly including a temporal relationship.\footnote{Using derived time predictors like hour of the day and day of the year can help a model learn some time dependence, but this is different than a recursive model like autoregression or a Recurrent Neural Network (RNN).} These models will be referred to as ``static."
+With modern advances in computing and more extensive observed FMC data, machine learning models of FMC have become more popular. Machine learning is a general term for statistical models that learn the patterns of observed data and are used to predict new, unobserved data. The term ``training" is used to describe the process of using data to modify model parameters. The models researchers have commonly considered within the FMC literature include various forms of linear regression, random forests, or XGBoost.\footnote{This is a commonly used abbreviation for a method called ``Extreme Gradient Boosting". See Appendix \ref{app:ml} for more detail.} Versions of these three model architectures will be used in this project, and additional details on the models can be found in the Methods section as well as Appendix \ref{app:ml}. These models are not recursive in time, meaning that the models are mapping observed weather conditions to the response variable of FMC at each instance of time without explicitly including a temporal relationship.\footnote{Using derived time predictors like hour of the day and day of the year can help a model learn some time dependence, but this is different than a recursive model like autoregression or a Recurrent Neural Network (RNN).} These models will be referred to as ``static." Recursive models include any model where the output at time $t$ is a function of the model output at previous times.
 
-Using the previously mentioned machine learning models, without explicit time recursion, is an active area of research in the fuel moisture modeling literature. Lee 2020 fit various statistical models to ground station observations in South Korea, and selected a Random Forest model as the most accurate. \cite{Lee-2020-EFM} Researchers at the National Center for Atmospheric Research (NCAR) conducted a larger study in the United States by developing and evaluated a number of machine learning models of FMC using weather data from the High Resolution Rapid Refresh (HRRR) weather model and NASA's VIIRS satellites \cite{McCandless-2020-EWS, Schreck-2023-MLV}. The final model in their publicly available 10-hour FMC forecasting tool is an XGBoost. 
+Using the previously mentioned machine learning models, without explicit time recursion, is an active area of research in the fuel moisture modeling literature. \cite{Lee-2020-EFM} fit various statistical models to ground station observations in South Korea, and selected a Random Forest model as the most accurate. Researchers at the National Center for Atmospheric Research (NCAR) conducted a larger study in the United States by developing and evaluated a number of machine learning models of FMC using weather data from the High Resolution Rapid Refresh (HRRR) weather model and NASA's VIIRS satellites \citep{McCandless-2020-EWS, Schreck-2023-MLV}. The final model in their publicly available 10-hour FMC forecasting tool is an XGBoost. 
 
-The physical relationship between FMC and atmospheric conditions is fundamentally time-dependent. In other words, the current state of FMC depends not just on the current atmospheric conditions, but the atmospheric conditions in the past. For example, a large rain event might result in very wet fuels that take a long time to dry out. Physics-based models of FMC are time-dependent differential equations, so they are recursive. Since the underlying physical process is time dependent, it is an active area of research is to use temporally recursive models for fuel moisture modeling. Kang 2022 test autoregressive models and a LSTM\footnote{Long Short Term Memory, a variety of recurrent neural networks specialized for time series.} to predict monthly averaged FMC observations. \cite{Kang-2022-FMC} Other recent efforts to use recurrent neural networks (RNNs) include Fan 2021, where an LSTM was built with the 2017 Vanderkamp physical model of FMC as an input \cite{Fan-2021-PGD}. Recent efforts include Mandel et al. (2023), where a RNN is fit to atmospheric model data from HRRR \cite{Mandel-2023-BFM}. There is not a widely available FMC model product built on recursive machine learning models at this time.
+The physical relationship between FMC and atmospheric conditions is fundamentally time-dependent. In other words, the current state of FMC depends not just on the current atmospheric conditions, but the atmospheric conditions in the past. For example, a large rain event might result in very wet fuels that take a long time to dry out. Physics-based models of FMC are time-dependent differential equations, so they are recursive. Since the underlying physical process is time dependent, it is an active area of research is to use temporally recursive models for fuel moisture modeling. \cite{Kang-2022-FMC} tested autoregressive models and a LSTM\footnote{Long Short Term Memory, a variety of recurrent neural networks specialized for time series.} to predict monthly averaged FMC observations. Other recent efforts to use recurrent neural networks (RNNs) include \cite{Fan-2021-PGD}, where an LSTM was built with the 2017 Vanderkamp physical model of FMC as an input. Additional recent efforts include \cite{Mandel-2023-BFM}, where a RNN is fit to atmospheric data from the HRRR weather model. There is not a widely available FMC model product built on recursive machine learning models at this time.
 
-In this project, static machine learning models of FMC will be considered. Static models, which do not explicitly model the time dependence of the physical process, have weaknesses in that they struggle to learn the patterns of a time-dependent process. However, these models have the advantage that they are much easier to build and deploy, and in practice can achieve empirical accuracy that is consistent with time-recursive models (CITE BASELINE MODEL SECTION).
+In this project, static machine learning models of FMC will be considered. Static models, which do not explicitly model the time dependence of the physical process, have weaknesses in that they struggle to learn certain patterns of a time-dependent process. However, these models have the advantage that they are much easier to build and deploy, and in practice can achieve levels of accuracy that is at least consistent with time-recursive models.
 
 \subsection{Loss Functions in Machine Learning}
 
-Training a machine learning model involves four components. 1) the dataset, 2) the machine learning model architecture, 3) the loss function, and 4) the optimizer. 
-
-The parameters of a machine learning model are adjusted to minimize the loss function, thus the loss function controls which patterns are learned from the dataset.
+Training a machine learning model involves four components. 1) the dataset, 2) the machine learning model architecture, 3) the loss function, and 4) the algorithm used for optimizing model parameters. The parameters of a machine learning model are adjusted to minimize the loss function, thus the loss function controls which patterns are learned from the dataset. Loss functions are the main area of research interest in this project, and are described in this section.
 
 \subsubsection{Loss Functions Overview}
+\hfill
 
-A loss function is intended to measure the fitting accuracy of a statistical model. Loss functions are used for training the parameters machine learning models. Model parameters are chosen by minimizing the loss function. This can be done analytically for models like linear regression, but for more complicated models it must be estimated using some variety of optimizer, like gradient descent. 
+A loss function is intended to measure the fitting accuracy of a statistical model. Loss functions are used for training the parameters of machine learning models. The final model parameters that are used to make future predictions are the ones that minimize the loss function. Minimizing the loss function can be done analytically for models like linear regression, but for more complicated models it must be estimated using some variety of optimizer like gradient descent. 
 
-When the response variable is continuous, as is the case with modeling FMC, the standard choice of loss function is the mean squared error (MSE), which is equivalent to the L2 norm of the vector of model residuals. Suppose there is an observed vector of response data $y$ of length $N$ and a vector of model predictions $\hat y$. The $i^{th}$ residual of the model would be $(y_i - \hat y_i)$. The MSE for the model would thus be:
+When the response variable is continuous, as is the case with modeling FMC, the standard choice of loss function is the mean squared error (MSE), which is the sum of squared residuals. This is proportional to the squared L2 norm of the vector of model residuals, with the scaling factor being $1/N$. Suppose there is an observed vector of response data $y$ of length $N$ and a vector of model predictions $\hat y$. The $i^{th}$ residual of the model would be $(y_i - \hat y_i)$. The MSE for the model would thus be:
 
 
 \begin{equation}
     \label{eq:mse}
-    \text{MSE} = \frac{1}{N}\sum_{i=1}^N r_i^2 = \|r\|_2^2
+    \text{MSE} = \frac{1}{N}\sum_{i=1}^N (y_i - \hat y_i)^2 = \frac{1}{N}\|y - \hat y\|^2_2
 \end{equation}
 
-There are many other potential loss functions for continuous data, such as the the mean absolute error, equivalent to the L1 norm of the residuals. In this project, a number of weighted MSE loss functions will be considered. Weighted least squares minimizes the weighted residual sum of squares, with a weight $w_i$ applied to each squared residual value:\footnote{It is not strictly required for the weights to sum up to 1. In many machine learning contexts, scaling the weights so that they sum to 1 leads to identical results.}
+There are many other potential loss functions for continuous data, such as the the mean absolute error, which is proportional to the squared L1 norm of the residuals. In this project, a number of weighted MSE loss functions will be considered. Weighted least squares minimizes the weighted residual sum of squares, with a weight $w_i$ applied to each squared residual value:\footnote{It is not strictly required for the weights to sum up to 1. In many machine learning contexts, scaling the weights so that they sum to 1 leads to identical results.}
 
 
 \begin{equation}
     \label{eq:wmse}
-    \text{Weighted MSE} = \frac{1}{N}\sum_{i=1}^N w_i\cdot r_i^2
+    \text{Weighted MSE} = \frac{1}{N}\sum_{i=1}^N w_i\cdot (y_i - \hat y_i)^2
 \end{equation}
 
-Weighting the loss function introduces bias into the estimator when considering the accuracy of the predictions. This addition of bias can be beneficial if the variance of the estimator is sufficiently reduced. This dynamic is referred to as the ``bias-variance tradeoff" (CITE ESL pg 37). Weighted loss functions have been most commonly used in the context of classification problems. \footnote{The loss function for a classification problem would not be MSE, but rather something like cross-entropy which is intended for categorical model output.} When trying to build classification models on highly imbalanced datasets, such as when predicting a~very rare disease, it is often desirable to weight the loss function to give more weight to the underrepresented class. For example, in a model of a rare disease where only 1 out of 1 million observed people has the disease, a model could correctly predict 999,999 out of 1 million cases correctly by predicting that nobody has the disease. The model will of course never correctly predict that somebody has the disease, so this is undesirable behavior. Weighting the loss function so that the rare cases contribute more to the total model loss can control for these errors. With continuous response variables, weighted loss functions are used for outlier detection, where iterative schemes identify influential observations and downweight them so they do not have an outsize effect on the final model fit. This is the technique used in various robust regression algorithms.\cite{OLeary-1990-RRC} In this project, weighted MSE loss functions with a continuous response variable will be considered based on purely physical considerations of the problem, not meant to address any outlier issues. 
+Weighting the loss function introduces bias into the estimator when considering the accuracy of the predictions. This addition of bias can be beneficial if the variance of the estimator is sufficiently reduced. This dynamic is referred to as the ``bias-variance tradeoff" \citep[p.\ 37]{Hastie-2010-ESL}. Weighted loss functions have been most commonly used in the context of classification problems.\footnote{The loss function for a classification problem would not be MSE, but rather something like cross-entropy which is intended for categorical model output.} When trying to build classification models on highly imbalanced datasets, such as when predicting a~very rare disease, it is often desirable to weight the loss function to give more weight to the underrepresented class. For example, in a model of a rare disease where only 1 out of 1 million observed people has the disease, a model could correctly predict 999,999 out of 1 million cases correctly by predicting that nobody has the disease. The model will therefore never correctly predict that somebody has the disease, so this is undesirable behavior. Weighting the loss function so that the rare cases contribute more to the total model loss can control for these errors. With continuous response variables, weighted loss functions are used for outlier detection, where iterative schemes identify influential observations and downweight them so they do not have an outsize effect on the final model fit. This is the technique used in various robust regression algorithms \citep{OLeary-1990-RRC}. In this project, weighted MSE loss functions with a continuous response variable will be considered based on purely physical considerations of the problem, not meant to address class imbalance or any outlier issues. Constructing loss functions based on physical considerations in this way is much less common in the machine learning literature.
 
 \subsubsection{Custom Loss Functions in Environmental Science}
+\hfill
 
-Within wildfire modeling and broader environmental science literature, custom loss functions have been used in a number of studies, but primarily for imbalanced classification tasks as discussed previously. Researchers from the Cooperative Institute for Research in the Atmosphere (CIRA) at Colorado State University published a guide to implementing custom loss functions for environmental science applications in 2021, with a number of applications related to storm detection, generating synthetic radar imagery, and more. \cite{Ebert-2021-GCL} The paper introduces a simple exponentially weighted loss function\footnote{\cite{Ebert-2021-GCL} at Page 7.}, which will be used in this project, along with instructions to implement these loss functions in the Tensorflow software library for neural networks.
+Within wildfire modeling and broader environmental science literature, custom loss functions have been used in a number of studies, but primarily for imbalanced classification tasks as discussed previously. Researchers from the Cooperative Institute for Research in the Atmosphere (CIRA) at Colorado State University published a guide to implementing custom loss functions for environmental science applications in 2021, with a number of applications related to storm detection, generating synthetic radar imagery, and more. The paper introduces a simple exponentially weighted loss function \citep[p.\ 7]{Ebert-2021-GCL}, which will be used in this project, along with instructions to implement these loss functions in the Tensorflow software library for neural networks.
 
-Detecting wildfires using remote sensing is an active area of research, and machine learning methods of image processing are popular. The problem is often framed as a classification task, where given a grid of pixels in a image, the model classifies each pixel as fire or not fire. Since the goal is early detection of wildfires, when there are fires present the number of fire pixels is very small relative to the overall number of pixels in the image. Thus, this is an imbalanced classification task and weighted loss functions are useful. Yang 2021 and Pande 2021 both use variations of convolutional neural networks for classification with weighted loss functions to address class imbalance \cite{Yang-2021-PFF}\cite{Pande-2021-WSF}.
+Detecting wildfires using remote sensing is an active area of research, and machine learning methods of image processing are popular. The problem is often framed as a classification task, where given a grid of pixels in a image, the model classifies each pixel as fire or not fire. Since the goal is early detection of wildfires, when there are fires present the number of fire pixels is very small relative to the overall number of pixels in the image. Thus, this is an imbalanced classification task and weighted loss functions are useful. \cite{Yang-2021-PFF} and \cite{Pande-2021-WSF} both use variations of convolutional neural networks (CNNs) for classification with weighted loss functions to address class imbalance. In a slightly related project, \cite{Buch-2022-SML} use a variety of neural network to predict wildfire frequency and burned area in the Western US. A custom loss function is used to get the network to minimize the loss of the model output compared to a  statistical distribution.
 
-In a slightly related project, Buch 2022 use a variety of neural network to predict wildfire frequency and burned area in the Western US \cite{Buch-2022-SML}. A custom loss function is used to get the network to minimize the loss over a statistical distribution, rather than minimizing the loss for a single output of the model.
-
-For weighted loss functions specifically related to modeling FMC, researchers have used weighted loss functions when investigating the relationship between FMC and soil moisture. Lu 2021 use a robust regression procedure to downweight influential observations when using satellite observations to model soil moisture and live FMC. \cite{Lu-2021-EMS} Rakmatulina 2021 use a weighted regression scheme when trying to perform inference on the size of the effect of soil moisture on FMC. \cite{Rakhmatulina-2021-SMI}
+For custom loss functions specifically related to modeling FMC, researchers have used weighted loss functions when investigating the relationship between FMC and soil moisture. \cite{Lu-2021-EMS} use a robust regression procedure to downweight influential observations when using satellite observations to model soil moisture and live FMC. \cite{Rakhmatulina-2021-SMI} use a weighted regression scheme when trying to perform inference on the size of the effect of soil moisture on FMC. This project presents a new use of weighted loss functions in FMC modeling, with the purpose of improving ROS predictions.
 
 
 \section{Data}
+\label{sec:data}
 \subsection{Data Acquisition}
 
-Real-time weather data from RAWS stations is acquired through Synoptic Weather API, using the Python software package SynoticPy developed by Brian Blaylock. \cite{Synoptic-2024-SWA, Blaylock-2023-SPA} Synoptic grew out of the University of Utah's MesoWest program, provides a range of atmospheric data services.
+The National Interagency Fire Center (NIFC) operates Remote Automatic Weather Stations (RAWS) across the country to measure hourly FMC and other associated environmental variables \citep{NIFC-2024-RAW}. Figure \ref{fig:wfas_raws} shows the location of all RAWS with FMC sensors. These RAWS stations\footnote{The ``S" in RAWS stands for station, so this is redundant terminology. It is an aesthetic preference that this terminology is more clear.} have sensors for 10-hour fuels, which consist of a 1/2 inch pine dowel with a moisture probe inside of it \citep{Campbell-2017-RMM}. Observations of 1-hour or 100-hour fuels are typically done through field observations. But for real-time FMC modeling, 10-hour fuels are the only class of fuel with substantial data availability. In this project, dead 10-hour FMC will be examined for this reason.
 
-For this project, one year\footnote{13 total months were collected. This is because the cross-validation procedure splits training and testing data, so for the full training data to cover a year you need to collect slightly more than 12 months of data. See Section \ref{sec:cv} for more details.} of FMC and weather data was collected from RAWS from May 2023 through May 2024. The geographic area for this study was all RAWS within a spatial bounding box
-\footnote{
-The bounding box is defined as: [Minimum Latitude, Minimum Longitude, Maximum Latitude, Maximum Longitude], and the Rocky Mountain GACC has bounding box: [$37^\circ, -111^\circ, 46^\circ, -95^\circ$]} 
-containing the Rocky Mountain Geographic Area Coordination Center (GACC), as defined by NIFC.\cite{NIFC-2024-GAC} The data was formatted,  filtered\footnote{It is challenging to filter out all erroneous data. RAWS fuel moisture sensors can malfunction or produce errors in ways that are not easily filtered algorithmically. See Appendix \ref{app:data} for more details.} for erroneous data, and transformed to produce other useful predictors. Derived predictors from the data include the moisture equilibria, the day of year, and hour of the day.\footnote{From 0 to 23 UTC time. It is a simplifying assumption that hour of the day is consistent across longitude from the East to West. See \ref{app:data} for more details.} Data filters identified one of the RAWS stations had faulty sensors.\footnote{See \ref{app:data} for more details.} In total, over one year of data was collected at 128 unique locations. After applying data filters, 875,130 total observations of 9 predictor variables were used.
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.8\textwidth]{images/WFAS-RAWS-map.png}
+    \caption{All RAWS FMC locations.}
+    \label{fig:wfas_raws}
+\end{figure}
 
-\begin{table}[ht]
-\centering
-\caption{All Modeling Variables}
-\label{tab:all_vars}
-\begin{tabular}{|l|l|}
-\hline
-\textbf{Name}           & \textbf{Units} \\  \hline
-Equilibrium Moisture    & \%             \\ \hline
-Precipitation           & $mm/h$           \\ \hline
-Wind Speed              & $m/s$            \\ \hline
-Solar Radiation         & $kWh/m^2$         \\ \hline
-Elevation         & feet         \\ 
-\hline
-Hour                    & hours              \\ 
-\hline
-Day of Year             & days              \\ 
-\hline
-Latitude                & degrees              \\ 
-\hline
-Longitude               & degrees              \\ 
-\hline
+Real-time weather data from RAWS stations is acquired through Synoptic Weather API, using the Python software package ``SynoticPy" developed \citep{Synoptic-2024-SWA, Blaylock-2023-SPA}. Synoptic is an organization that grew out of the University of Utah's MesoWest program. They provide a range of atmospheric data services.
 
-\end{tabular}
-\end{table}
+For this project, one year\footnote{13 total months were collected. This is because the cross-validation procedure splits training and testing data, so for the full training data to cover a year you need to collect slightly more than 12 months of data. See Section \ref{sec:cv} for more details.} of FMC and weather data was collected from RAWS from May 2023 through May 2024. The geographic area for this study was all RAWS within a spatial bounding box\footnote{
+The bounding box is defined as: [Minimum Latitude, Minimum Longitude, Maximum Latitude, Maximum Longitude], and the Rocky Mountain GACC has bounding box: [$37^\circ, -111^\circ, 46^\circ, -95^\circ$]} containing the Rocky Mountain Geographic Area Coordination Center (GACC), as maintained by \cite{NIFC-2024-GAC}. The data was formatted,  filtered\footnote{It is challenging to filter out all erroneous data. RAWS fuel moisture sensors can malfunction or produce errors in ways that are not easily filtered algorithmically. See Appendix \ref{app:data} for more details.} for erroneous data, and transformed to produce other useful predictors. Derived predictors from the data include the wetting and drying moisture equilibria, the day of year, and hour of the day.\footnote{From 0 to 23 UTC time. It is a simplifying assumption that hour of the day is consistent across longitude from the East to West. See Appendix \ref{app:data} for more details.} Data filters were used to identify one RAWS stations with faulty sensors.\footnote{See Appendix \ref{app:data} for more details.} In total, over one year of data was collected at 128 unique locations. After applying data filters, 875,130 total observations of 9 predictor variables were used. For more information on the data acquisition and processing, see Appendix \ref{app:data}. Figure \ref{fig:raws_map} shows the location of the 128 RAWS stations within the Rocky Mountain GACC spatial bounding box with valid data over the time period considered.
 
-In physical models, the wetting and drying equilibrium variables are both used to capture physical behavior of fuels. In practice, these equilibrium values are very close to each other. In the machine learning context, these variables are so similar that it is preferable to just use one of them. For this project, the drying equilibrium will be used. All of the predictors used in this project, along with their units, are presented in Table \ref{tab:all_vars}.
+\begin{figure}[h]
+    \centering
+    \begin{subfigure}[b]{0.45\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{images/raws2.png}
+        \caption{National View}
+    \end{subfigure}
+    \hspace{0.05\textwidth} % Adjust horizontal space between images
+    \begin{subfigure}[b]{0.45\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{images/raws.png}
+        \caption{Close-up View}
+    \end{subfigure}
+    \caption{Rocky Mountain GACC - 128 RAWS Stations with Valid Data.}
+    \label{fig:raws_map}
+\end{figure}
 
 \subsection{Data Exploration}
 
-\begin{table}[ht]
-\centering
-\caption{Basic Summary Statistics for all Data}
-\label{tab:all_dat_summary}
-\begin{tabular}{llll}
-\toprule
- & Min & Max & Mean \\
-\midrule
-Drying Eq. & 1.04 & 38.06 & 17.75 \\
-Precipitation & 0 & 70.61 & 0.05 \\
-Wind & 0 & 41.13 & 2.66 \\
-Solar Radiation & 0 & 1,245 & 185.84 \\
-Elevation & 1,000 & 11,555 & 6,104.04 \\
-Hour & 0 & 23 & 11.50 \\
-DOY & 1 & 365 & 186.14 \\
-Longitude & 37.09 & 45.92 & 40.96 \\
-Latitude & -110.95 & -95.85 & -104.71 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-In the absence of precipitation, FMC exhibits a diurnal cycle. FMC is the highest at night just after when humidity is highest and temperatures are lowest. The time lag between the peak FMC and the corresponding extreme values of humidity and temperature is determined by the fuel class. So a 1-hour fuel will have peak FMC relatively shortly after the extreme humidity and temperature times, while there would be a longer time delay with a 100-hour fuel. And moisture is the lowest just after the heat of the day in the early afternoon when humidity is low temperatures are high. Figure \ref{fig:fmc_no_rain} shows this pattern for a RAWS station in Colorado.\footnote{RAWS station ID CHAC2 is in southwest Colorado, at coordinates (37.19944,	-108.48917)} Using the hour of the day as a predictor can help machine learning models capture this cyclical pattern. Precipitation causes direct absorption of water by fuels. In Figure \ref{fig:fmc_with_rain}, the FMC increases very quickly just following a rain event.\footnote{Note the y-axis difference between Figures \ref{fig:fmc_no_rain} and \ref{fig:fmc_with_rain}}\footnote{In Figure \ref{fig:fmc_with_rain}, the units of precipitation happen to match up with FMC and thus can share a y-axis label, but this is accidental and wouldn't be the case if the units were converted to inches for example.}
+In the absence of precipitation, FMC exhibits a diurnal cycle. FMC is the highest at night just after when humidity is highest and temperatures are lowest. The time lag between the peak FMC and the corresponding extreme values of humidity and temperature is determined by the fuel class. So a 1-hour fuel will have peak FMC relatively shortly after the extreme humidity and temperature times, while there would be a longer time delay with a 100-hour fuel. And moisture is the lowest just after the heat of the day in the early afternoon when humidity is low temperatures are high. Figure \ref{fig:fmc_no_rain} shows this pattern for a RAWS station in Colorado.\footnote{RAWS station ID CHAC2 is in southwest Colorado, at coordinates (37.19944,	-108.48917)} Using the hour of the day as a predictor can help machine learning models capture this cyclical pattern. Precipitation causes fuels to directly absorb of water. In Figure \ref{fig:fmc_with_rain}, the FMC increases very quickly just following a rain event.\footnote{Note the y-axis difference between Figures \ref{fig:fmc_no_rain} and \ref{fig:fmc_with_rain}}\footnote{In Figure \ref{fig:fmc_with_rain}, the units of precipitation happen to match up with FMC and thus can share a y-axis label, but this is accidental and wouldn't be the case if the units were converted to inches for example.}
 
 \begin{figure}[ht]
     \centering
@@ -288,25 +271,9 @@ In the absence of precipitation, FMC exhibits a diurnal cycle. FMC is the highes
     \label{fig:fmc_with_rain}
 \end{figure}
 
-Relative humidity and air temperature have a complicated relationship with FMC. Figure \ref{fig:rh_temp_plot} plots the relationship between these two predictors and the FMC at RAWS station CHAC2 for a period of observed values.\footnote{A subset of 1,000 hours of data are plotted for clarity.} The observed correlations in these plots correspond to 0.78 and -0.48, respectively. 
+Relative humidity and air temperature have a complicated relationship with FMC. Additionally, RH and temperature are related to each other. Temperature strongly affects how much water can be held in the air. As temperature increases, RH decreases holding all else constant. 
 
-\begin{figure}[ht]
-    \centering
-    \includegraphics[width=0.8\textwidth]{images/rh_temp_plot.png}
-    \caption{RH and Temperature relationship with FMC.}
-    \label{fig:rh_temp_plot}
-\end{figure}
-
-When relating RH and temperature to equilibrium moisture content using the Equation \ref{eq:equil}, the relationship is much clearer, as can be see in Figure \ref{fig:eq_rh_temp_plot}. The observed correlations in these plots correspond to 0.99 and -0.84, respectively, so the linear relationships are much stronger when using the equilibrium moisture content. Thus, in this project the equilibrium moisture content will be used as a predictor of FMC, rather than using RH and temperature separately.
-
-\begin{figure}[ht]
-    \centering
-    \includegraphics[width=0.8\textwidth]{images/eq_rh_temp_plot.png}
-    \caption{RH and Temperature relationship with Drying Equilibrium.}
-    \label{fig:eq_rh_temp_plot}
-\end{figure}
-
-As discussed previously, the equilibrium moisture content is the theoretical FMC of a piece of wood if kept in constant atmospheric conditions for a long time. The fuel class, e.g. 10-hour fuel, characterizes how quickly the FMC responds to a change in atmospheric conditions. Figure \ref{fig:eq_plot} shows the FMC over time, along with the wetting and drying equilibrium moisture content. Notice how the upward sloping sections of the FMC curve occur slightly later in time than the upward sloping sections of the equilibrium moisture variables in Figure \ref{fig:eq_rh_temp_plot}. 
+Using equilibrium moisture content as a predictor can leverage the physical understanding of the relationship between RH, temperature, and FMC. As discussed previously, the equilibrium moisture content is the theoretical FMC of a piece of wood if kept in constant atmospheric conditions for a long time. Equilibrium moisture content is calculated from RH and temperature using Equation \ref{eq:equil}. The fuel class, e.g. 10-hour fuel, characterizes how quickly the FMC responds to a change in atmospheric conditions. Figure \ref{fig:eq_plot} shows the FMC over time, along with the wetting and drying equilibrium moisture content. Notice how the upward sloping sections of the FMC curve occur slightly later in time than the upward sloping sections of the equilibrium moisture variables in Figure \ref{fig:eq_plot}. 
 
 \begin{figure}[ht]
     \centering
@@ -315,23 +282,80 @@ As discussed previously, the equilibrium moisture content is the theoretical FMC
     \label{fig:eq_plot}
 \end{figure}
 
+\subsection{Predictors Overview}
+
+The set of predictors used in this model were chosen from physical considerations. Key physical drivers of FMC are RH, temperature, precipitation, wind speed, and solar radiation. All of these atmospheric variables are discussed previously in this report. In addition to these predictors, the hour of the day and day of year are used to help the models learn patterns in time. Finally, several variables that are meant to capture physical characteristics of the RAWS station locations are used as predictors. These include height above sea level, and the longitude and latitude coordinates of the stations. These predictors are used to help the model learn any spatial relationships with FMC.
+
+Equilibrium moisture is derived from RH and temperature, as shown in Equation \ref{eq:equil}. Thus, only equilibrium moisture will be used, as it is generally inadvisable to include predictors that are direct functions of each other in machine learning models. However, further research could examine whether adding RH or temperature as predictors could improve the model. In physical models, the wetting and drying equilibrium variables are both used to capture physical behavior of fuels. In practice, these equilibrium values are very close to each other. In the machine learning context, these variables are so similar that it is preferable to just use one of them. For this project, the drying equilibrium will be used. 
+
+All of the predictors used in this project, along with their units, are presented in Table \ref{tab:all_vars}. Basic summary statistics of these variables are presented in Table \ref{tab:all_dat_summary}.
+
+\begin{table}[ht]
+\centering
+\caption{All Modeling Variables}
+\label{tab:all_vars}
+\begin{tabular}{|l|l|l|}
+\hline
+\textbf{Name}           & \textbf{Units} & \textbf{Description} \\  \hline
+Equilibrium Moisture    & \%             & Derived from RH and temperature.    \\ \hline
+Precipitation           & $mm/h$         & Calculated from all rain accumulated over the hour. \\ \hline
+Wind Speed              & $m/s$          & Wind speed at 20ft above from.  \\ \hline
+Solar Radiation         & $kWh/m^2$      & Downward shortwave radiation.   \\ \hline
+Elevation               & feet           & Height above sea level.\\ 
+\hline
+Hour                    & hours          & From 0 to 23, UTC time.    \\ 
+\hline
+Day of Year             & days           & From 0 to 365 or 366\footnote{The data in this project included February 2024, which is a leap year month.}   \\ 
+\hline
+Latitude                & degrees        &  North to South spatial coordinate    \\ 
+\hline
+Longitude               & degrees        &  East to West spatial coordinate    \\ 
+\hline
+
+\end{tabular}
+\end{table}
+
+\begin{table}[ht]
+\centering
+\caption{Basic Summary Statistics for all Data}
+\label{tab:all_dat_summary}
+\begin{tabular}{llll}
+\toprule
+ & Min & Max & Mean \\
+\midrule
+Equilibrium Moisture & 1.04 & 38.06 & 17.75 \\
+Precipitation & 0 & 70.61 & 0.05 \\
+Wind & 0 & 41.13 & 2.66 \\
+Solar Radiation & 0 & 1,245 & 185.84 \\
+Elevation & 1,000 & 11,555 & 6,104.04 \\
+Hour & 0 & 23 & 11.50 \\
+DOY & 1 & 365 & 186.14 \\
+Longitude & 37.09 & 45.92 & 40.96 \\
+Latitude & -110.95 & -95.85 & -104.71 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 \section{Methods}
 
+The purpose of the analysis described in this section is to analyze custom loss functions and evaluate whether they lead to an improvement in predictions of wildfire ROS. Several different machine learning models are used in order to ensure that the changes in prediction accuracy are related to the loss functions themselves, rather than properties of the particular model used. The machine learning models will be trained on observations of FMC, then used to predict FMC in the future and at unobserved locations. Finally, these FMC predictions will be transformed into theoretical wildfire ROS values, directly using the curve from Figure \ref{fig:fmc_ros_3wind}. These predicted ROS values will be compared to the ROS values calculated using the observed FMC to compute accuracy metrics.
+
 \subsection{Machine Learning Models}
+\label{sec:ml}
 
-The goal of this project is to analyze the effect of using the custom loss functions for training machine learning models of FMC. Several different machine learning models will be considered in order to examine whether the custom loss functions have a similar effect across different model architectures. The models used in this project will be linear regression, XGBoost, and Random Forest.\footnote{See Appendix \ref{app:ml} for more information on the models.} These models have been tested by other researchers looking in the FMC modeling literature. \cite{Lee-2020-EFM,McCandless-2020-EWS, Schreck-2023-MLV} For each model, the same sets of training and testing data will be used. 
+The goal of this project is to analyze the effect of using the custom loss functions for training machine learning models of FMC. Several different machine learning models will be considered in order to examine whether the custom loss functions have a similar effect across different model architectures. The models used in this project will be linear regression, XGBoost, and Random Forest.\footnote{See Appendix \ref{app:ml} for more information on the models.} These models have been tested by other researchers looking in the FMC modeling literature \citep{Lee-2020-EFM,McCandless-2020-EWS, Schreck-2023-MLV}. For each model, the same sets of training and testing data will be used. 
 
-Each model will therefore be modeling the same functional mapping from the predictors at time $t$ to the response variable at time $t$.\footnote{The day of the year and the hour of the day are used as predictors, but this is different from a recursive model like a RNN or an autoregressive model.} Let the response variable (FMC) at time $t$ be $y_t$, $X_t$ be the set predictors at time $t$, and $W$ be the set of model parameters. So the general form of the models is:
+Each model will therefore be modeling the same functional mapping from the predictors at time $t$ to the response variable at time $t$.\footnote{The day of the year and the hour of the day are used as predictors, but this is different from a recursive model like a RNN or an autoregressive model.} Let the response variable (FMC) at time $t$ be $y_t$, $X_t$ be the set predictors at time $t$, and $W$ be the set of model parameters. The training procedure selects the model parameters $W$ that minimize the loss function. So the general form of the models is:
 
 \[
 y_t = f(X_t, W)
 \]
 
-Hyperparameter selection is important for machine learning models,\footnote{Hyperparameters in the context of machine learning are fixed parameters that are not updated in the training processes. Adjusting hyperparameters is known as ``tuning", and requires repeatedly training the model and evaluating forecast accuracy.} and in this project a simple manual search was conducted. Further research will utilize a more systematic approach to hyperparameter selection. 
+Hyperparameter selection is important for machine learning models. Hyperparameters in the context of machine learning are fixed parameters that are not updated in the training processes. Adjusting hyperparameters is known as ``tuning", and requires repeatedly training the model and evaluating forecast accuracy. However, it can be incredibly computationally intensive to effectively tune hyperparameters. It requires repeated training and testing steps, and additionally it requires constructing a ``validation set" from the data to avoid the situation where you select hyperparameters that overfit to the testing set. In this project a simple manual search was conducted. This will result in models that are slightly less accurate than if a more intensive hyperparameter search were conducted, but the advantage is that they are much quicker to deploy and analyze, and there is less of a necessity to use up data constructing validation sets. Future research will utilize a more systematic approach to hyperparameter selection. 
 
 \subsection{Proposed Loss Functions}
 
-The purpose of the custom loss functions proposed in this project is to place more weight on model residuals for drier fuels. It is hypothesized that this will lead to more accurate ROS forecasts due to the nonlinear relationship between FMC and ROS, as depicted in Figure \ref{fig:fmc_ros_fmc}. A simple exponentially weighted loss function will be considered. From Equation \ref{eq:wmse}, the weights $w_i$ will be a function of the level of the $i^{th}$ observation of the response variable $y_i$. The weight for the $i^{th}$ residual and corresponding loss function will be:
+The purpose of the custom loss functions proposed in this project is to place more weight on model residuals for drier fuels. It is hypothesized that this will lead to more accurate ROS forecasts relative to the standard MSE due to the nonlinear relationship between FMC and ROS, as depicted in Figure \ref{fig:fmc_ros_3wind}. A simple exponentially weighted loss function will be considered. From Equation \ref{eq:wmse}, the weights $w_i$ will be a function of the level of the $i^{th}$ observation of the response variable $y_i$. The weight for the $i^{th}$ residual and corresponding loss function will be:
 
 \begin{equation}
     \label{eq:weights}
@@ -345,14 +369,22 @@ The purpose of the custom loss functions proposed in this project is to place mo
 
 The parameter $\omega$ represents the strength of the weighting scheme relative to an unweighted MSE. When $\omega = 0$, $w_i = 1$ for all $i$, and Equation \ref{eq:wmse} reduces to the standard MSE defined in Equation \ref{eq:mse}. As $\omega$ increases, model residuals associated with larger values of $y_i$ (wetter fuels) are multiplied by a smaller weight and thus contribute less to the overall model loss. Figure \ref{fig:weights} shows the weighting scheme for various values of $\omega$, ranging from $0$ to $0.5$. The line labeled ``Equal Weight" corresponds to the standard MSE and applies a weight of 1 for all residuals in the loss function. The dotted and dashed lines represent the weights used by the exponential weighting schemes. The $\omega$ parameter is the constant in the exponential equation, and as that parameter increases,\footnote{Note the exponential is defined to be negative, so as $\omega$ increases, the exponential has a decreasing negative power.} less weight is given to residuals associated with higher observed values of FMC. The ROS curve is plotted together with these exponential weighting curves for comparison.\footnote{Note: in the right side of Figure \ref{fig:weights}, the ROS curve is rescaled.}
 
+Another way to construct a weighted custom loss function is to directly use the ROS value as a weight. Following the curve of the ROS based on FMC from Figure \ref{fig:fmc_ros_3wind}, assuming a constant 3m/s wind speed, a function called ``ROS" is derived which transforms FMC values into ROS. So for the $i^{th}$ observed value of FMC, the $i^{th}$ ROS value would be $ROS(y_i)$. This value can be used as a weight, and it has a similar shape to the negative exponential values, as seen in Figure \ref{fig:weights}. The ROS curve is strictly decreasing with respect to FMC, just like the negative exponential curves. A key mathematical difference between the ROS weights and the exponential weights is that the exponential curves will never assign a weight of zero. The ROS curve reaches zero at the moisture of extinction, or at 30\% FMC in Figure \ref{fig:weights}, so zero weight will be given to the residuals associated with FMC observations of 30\% or greater. In practice, these extremely high values are rare and would only be seen following periods of sustained heavy rain. Equation \ref{eq:rloss} shows the mathematical form of the ROS weighted loss function.
 
-For this project, the following loss functions will be compared:
+\begin{equation}
+    \label{eq:rloss}
+    \text{ROS Weighted MSE} = \frac{1}{N}\sum_{i=1}^N ROS(y_i)\cdot (y_i - \hat y_i)^2
+\end{equation}
+
+For this project, the following loss functions will be considered:
 
 \begin{itemize}
     \item The standard MSE.
     \item Exponentially weighted MSE with a grid of 10 different $\omega$ values, ranging from $0.01$ to $0.25$.
-    \item A weighted MSE with weights coming from the ROS curve shown in Figure \ref{fig:fmc_ros_fmc}.
+    \item A weighted MSE with weights coming from the ROS curve with 3m/s wind, as shown in Figure \ref{fig:fmc_ros_3wind}. The results with zero wind were also analyzed and show similar results.
 \end{itemize}
+
+As mentioned before, it is hypothesized that some amount of weighting will improve ROS predictions. If the weighting is too strong, or $\omega$ is very large, it should reduce the accuracy of the predictions. The use of the weighting scheme derived from the ROS function is hypothesized to be the best-case scenario of the weighting scheme. The same ROS function will be used to transform FMC values, so it is expected that directly using this function to derive weights should result in the best forecasts. However, the ROS function makes some important assumptions, notably that there is a constant 3m/s wind speed and zero slope. In reality, the ROS would be a complicated function of the local environment and fuel properties. The exponentially weighted loss functions do not rely on these physical assumptions, and are expected to be valid in a broader set of circumstances than a particular ROS weighting scheme.
 
 \begin{figure}[ht]
     \centering
@@ -361,36 +393,124 @@ For this project, the following loss functions will be compared:
     \label{fig:weights}
 \end{figure}
 
-\subsection{Model Evaluation}
+\subsection{Analysis Description}
 
 To evaluate the effects of the various loss functions on the accuracy of ROS forecasts, an experimental setup was constructed where the three machine learning models were trained on a period of data and used to predict the FMC at unobserved times and locations. The FMC predictions were transformed into ROS values for final accuracy metrics. 
 
 \subsubsection{Cross-Validation of Spatiotemporal Models}
 \label{sec:cv}
+\hfill
 
-In statistics, cross-validation refers to a set of methods used for evaluating model accuracy on unobserved data.\cite{Hastie-2010-ESL} The data used to fit model parameters is referred to as the ``training set" of data, and the model used to calculate prediction accuracy for the model is referred to as the ``test set" data. It is important that the testing data be independent of the training data. If not, the situation is known as ``data leakage", and this can lead to unreliable estimates of model accuracy.
+In statistics, cross-validation refers to a set of methods used for evaluating model accuracy on unobserved data \citep[Chap.\  7.10]{Hastie-2010-ESL}. The dataset used to fit model parameters is referred to as the ``training set" of data, and the dataset used to calculate prediction accuracy for the model is referred to as the ``test set" of data. It is important that the testing data be independent of the training data. If not, the situation is known as ``data leakage", and this can lead to unreliable estimates of model accuracy.
 
-In the context of FMC modeling, the models are spatiotemporal in nature, or the models predict values at a specific time for a specific location in space. Cross-validation procedures must be formulated carefully to avoid data leakage. The typical approach in machine learning would be to take a random sample of all of the data and hold some portion out to use as a test set. This method would typically lead to data leakage in the spatiotemporal context. To get a meaningful estimate of model accuracy, the test set must consist of observations at locations not included in the training set. Additionally, the test set should be at times in the future relative to all of the training set. 
+In the context of FMC modeling, the models are spatiotemporal in nature, or the models predict values at a specific time for a specific location in space. Cross-validation procedures must be formulated carefully to avoid data leakage. The typical approach in machine learning would be to take a random sample of all of the data and hold some portion out to use as a test set. This method would typically lead to data leakage in the spatiotemporal context. A simple random sample for cross-validation would result in a training set that includes observations from the same location as observations in the test set, resulting in data leakage in space since the training set is spatially dependent with the test set. Further, a simple random sample would result in a training set with observations that occur later in time than observations in the test set, resulting in data leakage in time since the predictions generated for the test set would not be true forecasts into the future. To get a meaningful estimate of model accuracy, the test set must consist of observations at locations not included in the training set and at times in the future relative to all of the training set. 
 
-In this project, the data was split into training and test sets in the following way. Starting with the earliest record of data,\footnote{After data filters, it was the time: May 17, 2023 at 2:22 UTC.} 30 days worth of data used. For those 30 days of data, a random sample of 20\% of the unique locations in the data were selected for inclusion in the test set. Then, the final 2 days of observations in that 30 day period were selected from those locations. So, 80\% of the unique locations of data over 28 days were used to fit model parameters, with observations taken from the start of the period through to 2 days before the end of the period. Then, the fitted model was used to predict FMC at the 20\% of locations that were held out from training, and at times corresponding to the last two days of the period. After that, the 30 period window is moved 2 days into the future. So the second iteration of test data were the 2 days immediately following the previous 2 days test set. In this way, the test sets had no overlap, but the training sets had at most 26 days of overlap. This led to a total of 167 training and testing periods.
+To construct a test set at unobserved locations, in this project a simple random sample of 20\% of the RAWS stations was selected for inclusion in the test set. So 80\% of the physical locations was used in each iteration of training. To account for the temporal relationships in the data when performing cross-validation, there are a number of techniques. In this project the method used was a version sometimes referred to as ``cross-validation with blocked subsets" \citep[p.\ 199]{Bergmeir-2012-OUC}. A fixed length of time is chosen for each iteration of training and testing. Figure \ref{fig:cv} shows a visual representation of the cross-validation method, when only considering time. In this Figure, the term ``sample index" on the x-axis corresponds to to the time, the blue blocks represent the training data, and the red blocks represent the testing data.
 
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=1\textwidth]{images/cv.jpg}
+    \caption[CV Method]{Cross-Validation with Blocked Subsets.\\ \textit{Reference: Soumya Shrivastava, Medium 2020.}}
+    % \caption{Cross-validation with Blocked Subsets.}
+    \label{fig:cv}
+\end{figure}
 
+In this project, a training and testing time period will consist of 30 days; 28 days of training and 2 days (48 hours) of testing into the future. So starting at the earliest time record of the data,\footnote{After data filters, it was the time: May 17, 2023 at 2:22 UTC.} the first 30 days of observations are collected into the first time period. Using that 30 days of data, the random sample of locations will be performed as described above. Then the earliest 28 days are used as the training set, and the final 48 hours of observations from the 20\% subset of locations are used as the test set. So the test set will included observations at physical locations from the 20\% subset of locations, and at times post-dating all training observations. Thus, the test set consists of observations at locations not included in the training set and at times in the future relative to all data in the training set. In other words, the test set is independent of the training set, and there will be no data leakage. 
 
-\subsection{Loss Function Experimental Design}
+Models are fit to the training set, then predictions are made into the future on the test set, and finally accuracy metrics are calculated by comparing the forecasts to the observed values. After that, the 30 day time period window is moved 48 hours into the future. So the second iteration of test data were the 48 hours immediately following the previous 48 hours test set. In this way, the test sets had no overlap, but the training sets had at most 26 days of overlap. This led to a total of 167 training and testing periods. This was repeated 5 times to account to uncertainty, for a total of 835 time periods of training and testing.
 
-Using the data collected from RAWS within the Rocky Mountain Geographic Area Coordination Center (GACC), the data was split into training and testing periods using the process described in the previous section. A total of twelve loss functions were considered: the standard MSE, ten weighted schemes with varying $\omega$ parameters, and one with weights determined directly from the ROS transformation of FMC. For each of the twelve loss functions, the three machine learning models described previously were fit to the training set and the fitted model was used to predict new values in the test set. 
+A testing period of 48 hours was selected since the HRRR weather model provides forecasts 48 hours into the future. Real-time wildfire simulations with the OpenWFM system will use HRRR weather data to make forecasts, and this project is intended to support the larger modeling efforts of OpenWFM. Thus in a real-time wildfire simulation, models could only be projected 48 hours into the future, and thus 48 hours is used as the length of the testing period in this project.
 
-The model accuracy is calculated by comparing the predicted FMC in the test set to the observed FMC through the root mean squared error (RMSE). The RMSE is useful since it is interpretable in the same units as the response variable, so a RMSE of 4 can be interpreted as the model having on average a 4\% error in the FMC. This process is repeated 5 times in order to get different random samples of locations to use in the test set. 
+\subsubsection{Loss Function Experimental Design}
+\hfill
 
-For the 167 training and testing periods, 3 machine learning models were fit using 12 different loss functions. Thus, 2,004 RMSE calculations were made for each model, for a total of 6,012 RMSE calculations across all models, time periods, and loss functions.
+Using the data collected from RAWS within the Rocky Mountain GACC, the data was split into training and testing periods using the process described in the previous section. A total of twelve loss functions were considered: the standard MSE, ten weighted schemes with varying $\omega$ parameters, and one with weights determined directly from the ROS transformation of FMC. For each of the twelve loss functions, the three machine learning models described previously were fit to the training set and the fitted model was used to predict new values in the test set. 
+
+The model accuracy is calculated by comparing the predicted FMC in the test set to the observed FMC through the root mean squared error (RMSE). The RMSE is useful since it is interpretable in the same units as the response variable, so a RMSE of 4 can be interpreted as the model having on average a 4\% error in the FMC. The accuracy metrics for predicting FMC are computed to ensure that the levels of accuracy achieved for the models is close to what would be seen with models currently used in the wildfire modeling literature. The main goal, however, is to analyze the RMSE of predicted ROS values. The predicted FMC values were converted into theoretical ROS values through the curve seen in Figure \ref{fig:fmc_ros_3wind}, which assumes a constant 3m/s wind speed and zero slope. These predicted ROS values are compared to the ROS values calculated from the observed FMC in the test set.
+
+For the 167 training and testing periods, 3 machine learning models were fit using 12 different loss functions. For each loss function, a total of 501 RMSE calculations were made across the time periods and models. These values were grouped together, so the final accuracy metrics for a particular loss function are a combination of RMSE values from different locations and different models. A total of 6,012 RMSE calculations were made across all models, time periods, and loss functions.
+
+\subsubsection{Supplementary Analysis for Driest Period}
+\hfill
+
+When fuels are very dry, ROS is the highest. The effect of FMC on ROS will be the strongest when fuels tend to be closest to zero. If custom loss functions are going to improve the accuracy of predicting ROS, we would expect that to be the most pronounced during the driest months with the highest risk for rapid fire spread. This section describes a supplementary analysis meant to analyze the driest period observed in the data. 
+
+Of the 167 time periods considered, the time period from October 18th, 2023 through November 17th, 2023 had the lowest average FMC and the highest average ROS, according to the constant 3m/s ROS function. See Figure \ref{fig:dry} for a summary of the average FMC and ROS for the time periods considered. It might be surprising that this period had the driest fuels in the year considered. According to a summary of weather in 2023 from the National Weather Service for the weather around Denver, Colorado, that time period was very dry in terms of precipitation. November 2023 had the second lowest total precipitation (0.18 inches), just behind December when temperatures were also much lower \citep{NWS-2023-DAC}. The warmest months were July and August, but those months had far more precipitation than November  (2.10 and 0.93 inches, respectively). 
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=1\textwidth]{images/dry.png}
+    \caption{Time Period Histograms of FMC and ROS.}
+    \label{fig:dry}
+\end{figure}
+
+For this time period of data, the final 48 hours of data was used as the testing period, and the random splitting by physical location was repeated 10 times to account for uncertainty in the random sampling and variance in the random algorithms. Additionally, for computational efficiency, the loss functions considered were the standard MSE, the ROS weighting scheme, and only the weighted loss function with $\omega = 0.0367$, which was the best performing exponentially weighted loss function from the analysis over a full year.
 
 \section{Results}
 
-The results of the analysis described above showed that there was a small improvement in the prediction accuracy for the weighted loss functions.
+\subsection{Main Analysis - Over Whole Year}
 
-To compare the RMSE of predictions from the models trained with different loss functions, the different time periods used for training and testing are considered to be independent realizations of the same data generating process. In other words, the RMSE for the various test periods are aggregated to calculate a mean and standard error of the RMSE. Figure \ref{fig:results1} shows the results aggregated over the time periods. The dots represent the mean RMSE, and the vertical line the standard error of the mean RMSE. On the x-axis, the label ``exp\_0.01" corresponds to the exponentially weighted loss function with weight $w_i = \exp(-0.01\cdot y_i)$, where $y_i$ is the $i^{th}$ response value. The vertical dashed line in the plot is meant to distinguish the ROS weighting scheme from the others. The other loss functions are a continuum; the ``MSE" corresponds to an $\omega$ parameter of zero, and then the $\omega$ parameter increases across the x-axis until ``exp\_0.25", which corresponds to $\omega=0.25$. The weighting scheme using the ROS curve is separate from this continuum. The left side of Figure \ref{fig:results1} shows the results of the trained models when predicting the untransformed FMC values. The right side shows the results of the models when predicting the transformed ROS response.
+The results of the analysis described above showed that there was a small improvement in the prediction accuracy for ROS for the custom loss functions across the set of three machine learning models.
 
-The results for predicting ROS show a U-shaped curve for the weighted loss functions,\footnote{Again, note that the ROS category is not part of this continuum.} where a small amount of weighting of the residuals led to a smaller test RMSE, but when the strength of the weighting scheme increases the accuracy deteriorates. The exponential weighting scheme with $\omega = 0.0367$ resulted in the smallest test RMSE for ROS predictions. These results were small, however, representing just over a 1\% reduction in the RMSE compared to the standard MSE loss function, and the results were not statistically significant.\footnote{A two-sample t-test comparing the RMSE values for the standard MSE loss function and the weighted loss function with $\omega = 0.0367$ resulted in a p-value of roughly 0.54.} Visually this can be seen the the strong overlap between the standard errors of the means.\footnote{The vertical lines representing standard error overlap.} The RMSE using the ROS for weights had similar very similar results to the minimum RMSE results from the $\omega = 0.0367$ weighting scheme. Figure \ref{fig:results2} in Appendix \ref{app:res} shows the results broken down by machine learning model. The pattern is similar for the different models, supporting the idea that conclusions can be drawn about the loss functions themselves.
+To compare the RMSE of predictions from the models trained with different loss functions, the different time periods used for training and testing are considered to be independent realizations of the same data generating process. In other words, the RMSE for the various test periods and replications are aggregated to calculate a mean and standard error of the RMSE. 
+
+When evaluating the prediction accuracy for FMC itself, the MSE loss function did not actually have the lowest RMSE on the test sets. Table \ref{tab:fmc_results} shows the RMSE values for predicting FMC aggregated over all models and time periods. The exponentially weighted loss function with $\omega=0.01$ and the ROS weighted loss function had the lowest mean estimates, very slightly lower than the standard MSE. 
+
+\begin{table}[ht]
+\centering
+\caption{RMSE Results for predicting FMC.}
+\label{tab:fmc_results}
+\begin{tabular}{llrrr}
+\toprule
+ & Loss & Mean & Min & Max \\
+\midrule
+0 & MSE & 3.999 & 1.604 & 8.588 \\
+1 & $exp\_0.01$ & 3.996 & 1.600 & 8.588 \\
+2 & $exp\_0.0367$ & 4.000 & 1.418364 & 8.786 \\
+3 & $exp\_0.0633$ & 4.036 & 1.548 & 9.264 \\
+4 & $exp\_0.09$ & 4.091 & 1.505 & 9.603 \\
+5 & $exp\_0.1167$ & 4.157 & 1.449 & 10.226 \\
+6 & $exp\_0.1433$ & 4.254 & 1.464 & 10.745 \\
+7 & $exp\_0.17$ & 4.363 & 1.379 & 11.176 \\
+8 & $exp\_0.1967$ & 4.489 & 1.382 & 11.531 \\
+9 & $exp\_0.2233$ & 4.621 & 1.311 & 11.824 \\
+10 & $exp\_0.25$ & 4.770 & 1.254 & 12.072 \\
+11 & ROS & 3.996 & 1.573 & 8.817 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+When evaluating the prediction accuracy for ROS, the weighted loss functions show a small improvement in the RMSE. Table \ref{tab:ros_results} shows the RMSE values for predicting ROS aggregated over all models and time periods. The ROS weighted loss function had the largest improvement in accuracy, followed by the weighted loss function with $\omega=0.0367$. These were associated with reductions in the RMSE by 0.6\% and 1.1\%, respectively. Paired t-tests were use to examine the statistical significance of these mean differences. The paired t-tests compare the mean difference between the accuracy metrics from the standard MSE loss and the metrics from the two weighted loss functions. The assumed null hypothesis is that there is zero mean difference between the two groups of RMSE values, and a small p-value indicates evidence that the mean difference is nonzero. The p-values associated with the tests were roughly 0.017 when comparing the standard MSE to the exponentially weighted loss with $\omega=0.0367$, and roughly 0.005 when comparing the results for the standard MSE to the ROS weighted loss function. These are statistically significant at a relatively high threshold of significance, so this analysis provides reasonably strong evidence that the mean RMSE is less for the best custom loss functions when predicting ROS.
+
+\begin{table}[ht]
+\centering
+\caption{RMSE Results for predicting ROS.}
+\label{tab:ros_results}
+\begin{tabular}{llrrr}
+\toprule
+ & Loss & Mean & Min & Max \\
+\midrule
+0 & MSE & 7.119e-03 & 3.039e-03 & 1.562e-02 \\
+1 & $exp\_0.01$ & 7.105e-03 & 3.057e-03 & 1.524e-02 \\
+2 & $exP\_0.0367$ & 7.074e-03 & 3.044e-03 & 1.566e-02 \\
+3 & $exp\_0.0633$ & 7.080e-03 & 2.844e-03 & 1.651e-02 \\
+4 & $exp\_0.09$ & 7.118e-03 & 3.127e-03 & 1.648e-02 \\
+5 & $exp\_0.1167$ & 7.164e-03 & 3.062e-03 & 1.615e-02 \\
+6 & $exp\_0.1433$ & 7.259e-03 & 3.093e-03 & 1.690e-02 \\
+7 & $exp\_0.17$ & 7.374e-03 & 3.121e-03 & 1.759e-02 \\
+8 & $exp\_0.1967$ & 7.531e-03 & 3.100e-03 & 1.821e-02 \\
+9 & $exp\_0.2233$ & 7.690e-03 & 3.146e-03 & 1.876e-02 \\
+10 & $exp\_0.25$ & 7.889e-03 & 3.165e-03 & 1.925e-02 \\
+11 & ROS & 7.040e-03 & 3.032e-03 & 1.571e-02 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Figure \ref{fig:results1} shows the results aggregated over the time periods. The dots represent the mean RMSE, and the vertical line the standard error of the mean RMSE. On the x-axis, the label ``exp\_0.01" corresponds to the exponentially weighted loss function with weight $w_i = \exp(-0.01\cdot y_i)$, where $y_i$ is the $i^{th}$ response value. The vertical dashed line in the plot is meant to distinguish the ROS weighting scheme from the others. The other loss functions are a continuum; the ``MSE" corresponds to an $\omega$ parameter of zero, and then the $\omega$ parameter increases across the x-axis until ``exp\_0.25", which corresponds to $\omega=0.25$. The weighting scheme using the ROS curve is separate from this continuum. The left side of Figure \ref{fig:results1} shows the results of the trained models when predicting the untransformed FMC values. The right side shows the results of the models when predicting the transformed ROS response.
+
+The results for predicting ROS show a U-shaped curve for the weighted loss functions,\footnote{Again, note that the ROS category is not part of this continuum.} where a small amount of weighting of the residuals led to a smaller test RMSE, but when the strength of the weighting scheme increases the accuracy deteriorates. The ROS weighting scheme resulted in the smallest test RMSE for ROS predictions, followed by the exponentially weighted loss with $\omega = 0.0367$. These results represent slightly over a 1\% reduction in the RMSE compared to the standard MSE loss function. 
+
+Figure \ref{fig:results2} in Appendix \ref{app:res} shows the results broken down by machine learning model. The pattern is similar for the different models, supporting the idea that conclusions can be drawn about the loss functions themselves. For the XGBoost and linear regression models, the exponentially weighted loss with $\omega = 0.0367$ outperformed the standard MSE, but for the Random Forest the accuracy metrics were the lowest for the ROS weighted loss, but the exponentially weighted loss showed slightly higher test RMSE values. 
 
 \begin{figure}[ht]
     \centering
@@ -399,23 +519,67 @@ The results for predicting ROS show a U-shaped curve for the weighted loss funct
     \label{fig:results1}
 \end{figure}
 
+\subsection{Supplementary Analysis - Driest Period}
+
+In this driest time period, the models are more accurate at predicting FMC than for the analysis over a whole year. This is because the spikes in FMC associated with rain events are much rarer in this time period. Table \ref{tab:fmc_results_dry} shows the RMSE for predicting FMC for the various loss functions across the 10 replications. Note that these are much lower than the values across the year shown in Table \ref{tab:fmc_results}, and again the FMC predictions were more accurate with the custom loss functions.
+
+\begin{table}[ht]
+\centering
+\caption{RMSE Results for predicting FMC, Driest Month.}
+\label{tab:fmc_results_dry}
+\begin{tabular}{lrrr}
+\toprule
+Loss & Mean & Min & Max \\
+\midrule
+MSE & 2.507 & 1.758 & 3.334 \\
+$\text{exp}\_0.0367$ & 2.433 & 1.711 & 3.232 \\
+ROS & 2.408 & 1.693 & 3.211 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+The improvement in accuracy at forecasting ROS was much more pronounced than for the analysis run over the entire year. Table \ref{tab:ros_results_dry} shows the RMSE results across the 10 replications. The exponentially weighted loss function was associated with relative reduction of 3.4\% in predicting ROS relative to the standard MSE. The ROS weighted loss function showed a 4.7\% reduction. Paired t-tests for the mean differences relative to MSE were both well below 0.01, indicating a high level of statistical significance.\footnote{P-value for the exponentially weighted loss relative to the MSE was 3.68e-6, and for the ROS it was 3.93e-8} 
+
+\begin{table}[ht]
+\centering
+\caption{RMSE Results for predicting ROS, Driest Month.}
+\label{tab:ros_results_dry}
+\begin{tabular}{lrrr}
+\toprule
+Loss & Mean & Min & Max \\
+\midrule
+MSE & 5.862e-3 & 4.091e-3 & 8.082e-3 \\
+$\text{exp}\_0.0367$ & 5.665e-3 & 3.913e-3 & 7.539e-3 \\
+ROS & 5.586e-3 & 3.886e-3 & 7.401e-3 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 \section{Discussion and Conclusions}
 
-The results for the RMSE of the FMC values was unexpected. The MSE as a loss function did not result in the lowest MSE in the test set. Using biased estimators by weighting the loss function resulted in slightly lower RMSE on the test set. A hypothesis to explain this relates to the effect of rain. As was shown in Figure \ref{fig:fmc_with_rain}, following rain events the FMC spikes up and then quickly falls back down after the rain passes. These events are relatively rare in the data as there are not long sustained periods of nonzero rain. These spikes in FMC following rain are associated with high levels of FMC, which correspondingly receive less weight when using the weighted loss functions. So, the weighted loss functions may have the effect of downweighting ``outlier" events and causing them to have less of an effect on the model predictions. This finding may show that downweighting FMC observations following rain might lead to an overall more accurate model.
+The results for the RMSE of the FMC values was unexpected. The MSE as a loss function resulted in the lowest MSE in the test set, but the differences in mean with the weighted loss functions were very small. Using biased estimators by weighting the loss function resulted in slightly lower RMSE on the test set. A hypothesis to explain this relates to the effect of rain. As was shown in Figure \ref{fig:fmc_with_rain}, following rain events the FMC spikes up and then quickly falls back down after the rain passes. These events are relatively rare in the data as there are not long sustained periods of nonzero rain. These spikes in FMC following rain are associated with high levels of FMC, which correspondingly receive less weight when using the weighted loss functions. So, the weighted loss functions may have the effect of downweighting ``outlier" events and causing them to have less of an effect on the model predictions. This finding may show that downweighting FMC observations following rain might lead to an overall more accurate model.
 
-This analysis shows that weighted loss functions can produce at least as accurate results as a standard MSE loss function for machine learning models of FMC, when looking at both the prediction accuracy of FMC itself, and of the transformation to ROS. While it cannot be concluded from this analysis that the weighted loss functions actually improved forecast accuracy for ROS, this analysis provides a hint of a signal that this might be useful if applied to real wildfire simulations. If the estimate of a roughly 1\% reduction in error of ROS were true, that might provide a meaningful improvement in wildfire simulations. This analysis used roughly 1 year of data from the Rocky Mountain region, and a more thorough analysis with data from other time periods and regions of the country could be performed to draw stronger conclusions about the effect of the weighted loss functions.
+This analysis shows that weighted loss functions can produce at least as accurate results as a standard MSE loss function for machine learning models of FMC, when looking at both the prediction accuracy of FMC itself. And when predicting the transformation to ROS, the weighted loss functions show small but nonzero improvements in accuracy across the whole year of data. If the estimate of a roughly 1\% reduction in error of ROS were true, that might provide a meaningful improvement in wildfire simulations. When examining the driest month of data in the supplementary analysis, the predictions of ROS were much better relative to the standard MSE for the custom loss functions. This is encouraging for the idea that weighting the loss functions could improve real-world wildfire modeling, since the driest months are the periods when wildfire risk is the highest. The ROS weighted loss reduced the RMSE for predicting ROS by 4.7\%, and the best exponentially weighted loss reduced the RMSE by 3.4\%. If this improvement in accuracy held up for real-world wildfire models, that could lead to substantially more accurate predictions of wildfire behavior.
 
-A number of simplification were used in this analysis. In real-time simulations of wildfires, ROS is a complicated function of local environmental conditions, such as terrain slope. It is not clear how weighted loss functions would perform under more realistic conditions for estimating ROS. The machine learning models used in this report were also not subjected to exhaustive hyperparameter search schemes, and more finely tuned models might interact with the loss functions differently. Additionally, the models used in this report were static, meaning the time dependence of the system was not explicitly modeled. 
+A number of simplification were used in this project. In real-time simulations of wildfires, ROS is a complicated function of local environmental conditions, such as terrain slope. It is not clear how weighted loss functions would perform under more realistic conditions for estimating ROS. The relationship between FMC and ROS will be different for different fuel types. This project utilized the relationship for fuel category 8, closed timber litter. This fuel type is not purely 10-h dead fuels. The machine learning models used in this report were also not subjected to exhaustive hyperparameter search schemes, and more finely tuned models might interact with the loss functions differently. Additionally, the models used in this report were static, meaning the time dependence of the system was not explicitly modeled. Also, this project used roughly 1 year of data from the Rocky Mountain region, and a more thorough analysis with data from other time periods and regions of the country could be performed to draw stronger conclusions about the effect of the weighted loss functions.
 
-Future research could apply the weighting scheme to RNNs or autoregressive models to examine the effect on forecast accuracy. One attractive feature about the weighted loss functions used in this analysis is that they are easy to implement in modern machine learning software packages.\footnote{The neural network software library Tensorflow, for example, has a parameter ``sample\_weight" that easily adds weighting to the standard MSE loss function.} A longer-term goal would be to run multiple real wildfire simulations, using a platform like WRF-SFIRE, with different estimates of FMC produced by models using different loss functions.
+Future research could apply the weighting scheme to RNNs or autoregressive models to examine the effect on forecast accuracy. One attractive feature about the weighted loss functions used in this project is that they are easy to implement in modern machine learning software packages.\footnote{The neural network software library Tensorflow, for example, has a parameter ``sample\_weight" that easily adds weighting to the standard MSE loss function.} A longer-term goal would be to run multiple real wildfire simulations, using a platform like WRF-SFIRE, with different estimates of FMC produced by models with weighted loss functions and see if wildfire behavior is captured more accurately.
 
+In summary, this analysis provides evidence that custom loss functions which place more importance on the drier regions of model errors could improve predictions of wildfire rate of spread. Repeated training and testing periods resulted in reductions in the RMSE for predicting ROS by roughly 1\% to 5\%. This analysis justifies examining the effect of the weighted loss functions on larger datasets, more physically reasonable recursive models, and in real-world wildfire modeling.
 
 \newpage
-\bibliographystyle{plain}
-\bibliography{ref/fire,ref/fmc,ref/ml}
+% \bibliographystyle{plain}
 
+\begingroup
+\raggedright
+\bibliographystyle{ametsoc}
+\bibliography{ref/fire,ref/fmc,ref/ml}
+\endgroup
 
 \appendix
+\addcontentsline{toc}{section}{Appendices}
+\addtocontents{toc}{\protect\setcounter{tocdepth}{1}}
 \section{Data Processing} 
 \label{app:data}
 \input{appendix_data.tex}
@@ -427,63 +591,9 @@ Future research could apply the weighting scheme to RNNs or autoregressive model
 \section{Further Results}
 \label{app:res}
 
-A table of summary RMSE values for predicting FMC is found in Table \ref{tab:fmc_results}. The label $exp\_0.01$ corresponds to $\omega=0.01$, and the weight of the $i^{th}$ residual would therefore be $w_i = \exp(-0.01\cdot y_i)$. The weighted loss function with $\omega=0.0367$ had the lowest mean RMSE, but the difference between this and the standard MSE was not statistically significant (p-value of roughly 0.86).
+Complete tables of results broken down by machine learning model can be found on github at: 
 
-\begin{table}[ht]
-\centering
-\caption{RMSE Results for predicting FMC.}
-\label{tab:fmc_results}
-\begin{tabular}{llrrr}
-\toprule
- & Loss & Mean & Min & Max \\
-\midrule
-0 & MSE & 3.948 & 1.857 & 7.480 \\
-1 & $\exp\_0.01$ & 3.937 & 1.825 & 7.645 \\
-2 & $\exp\_0.0367$ & 3.935 & 1.790 & 8.097 \\
-3 & $\exp\_0.0633$ & 3.986 & 1.810 & 8.528 \\
-4 & $\exp\_0.09$ & 4.066 & 1.703 & 8.917 \\
-5 & $\exp\_0.1167$ & 4.163 & 1.639 & 9.252 \\
-6 & $\exp\_0.1433$ & 4.297 & 1.580 & 9.534 \\
-7 & $\exp\_0.17$ & 4.448 & 1.583 & 9.853 \\
-8 & $\exp\_0.1967$ & 4.601 & 1.546 & 10.276 \\
-9 & $\exp\_0.2233$ & 4.767 & 1.507 & 10.636 \\
-10 & $\exp\_0.25$ & 4.954 & 1.464 & 11.300 \\
-11 & ROS & 3.962 & 1.800 & 8.523 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-A table of summary RMSE values for predicting ROS is found in Table \ref{tab:ros_results}. The weighted loss function with $\omega=0.0367$ had the lowest mean RMSE, but the difference between this and the standard MSE was not statistically significant (p-value of roughly 0.54).
-
-\begin{table}[ht]
-\centering
-\caption{RMSE Results for predicting ROS.}
-\label{tab:ros_results}
-\begin{tabular}{llrrr}
-\toprule
-\toprule
- & Loss & Mean & Min & Max \\
-\midrule
-0 & MSE & 5.533e-04 & 2.325e-04 & 1.022e-03 \\
-1 & $\exp\_0.01$ & 5.511e-04 & 2.423e-04 & 1.030e-03 \\
-2 & $\exp\_0.0367$ & 5.477e-04 & 2.341e-04 & 1.054e-03 \\
-3 & $\exp\_0.0633$ & 5.496e-04 & 2.214e-04 & 1.091e-03 \\
-4 & $\exp\_0.09$ & 5.544e-04 & 2.165e-04 & 1.128e-03 \\
-5 & $\exp\_0.1167$ & 5.615e-04 & 2.177e-04 & 1.182e-03 \\
-6 & $\exp\_0.1433$ & 5.730e-04 & 2.138e-04 & 1.197e-03 \\
-7 & $\exp\_0.17$ & 5.865e-04 & 2.112e-04 & 1.227e-03 \\
-8 & $\exp\_0.1967$ & 6.010e-04 & 2.151e-04 & 1.255e-03 \\
-9 & $\exp\_0.2233$ & 6.172e-04 & 2.099e-04 & 1.301e-03 \\
-10 & $\exp\_0.25$ & 6.364e-04 & 2.194e-04 & 1.381e-03 \\
-11 & ROS & 5.484e-04 & 2.219e-04 & 1.085e-03 \\
-\bottomrule
-\bottomrule
-\end{tabular}
-\end{table}
-
-A complete table of results can be found on github at: 
-
-\url{https://github.com/jh-206/Custom-Loss-FMDA}
+\url{https://github.com/jh-206/Custom-Loss-FMDA/blob/main/outputs/3_results-OUTPUTS.ipynb}
 
 Figure \ref{fig:results2} shows the RMSE calculations for each of the machine learning models separately.
 

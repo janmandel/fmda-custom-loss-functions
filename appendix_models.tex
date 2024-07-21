@@ -1,33 +1,28 @@
 
-\subsection*{Linear Regression}
+\subsection{Linear Regression}
 
-The linear regression model used in this project uses the standard form with a constant intercept term, parameters for each predictor variable, and a random error term. As is standard in statistics, the random error is assumed to be normally distributed with zero mean and unknown variance. Let the response value at time $t$ be $y_t$, the number of predictors be $p$, the $i^{th}$ predictor at time $t$ be $x^{(i)}_t$, the $i^{th}$ parameter be $\beta^{(i)}$, and the random error be the  independent (across all $t$) and identically distributed random variable $\epsilon$ with zero mean and unknown variance $\sigma^2$. The model thus has the mathematical form:
+The linear regression model used in this project uses the standard form with a constant intercept term, parameters for each predictor variable, and a random error term. As is standard in statistics, the random error is assumed to be normally distributed with zero mean and unknown variance. Let the response value at time $t$ be $y_t$, the number of predictors be $p$, the $i^{th}$ predictor at time $t$ be $x^{(i)}_t$, the $i^{th}$ parameter be $\beta^{(i)}$, and the random error be the  independent (across all $t$) and identically distributed random variable $\epsilon$ with zero mean and unknown variance $\sigma^2$. The model thus has the mathematical form \citep[p.\ 44]{Hastie-2010-ESL}:
 
 \[
 y_t = \beta^{(0)} + \sum_{i=1}^p \beta^{(i)} x^{(i)}_t + \epsilon, \qquad \epsilon\sim N(0, \sigma^2)
 \]
 
-CITE: ESL Page 44
+\subsection{Tree-based Methods}
 
-\subsection*{Tree-based Methods}
-
-In machine learning, ``tree" based models are a type of architecture used for classification or regression tasks where the data is partitioned some number of steps, and the final model output typically uses a simple average of the response variables associated with the data partitions. Regression trees thus produce piecewise-constant outputs.
-
-CITE: ESL page 295
+In machine learning, ``tree" based models are a type of architecture used for classification or regression tasks where the data is partitioned some number of steps, and the final model output typically uses a simple average of the response variables associated with the data partitions. Regression trees thus produce piecewise-constant outputs \citep[Chap.\ 10]{Hastie-2010-ESL}.
 
 The term ``ensemble" in machine learning refers to using many different models and aggregating them together. There are several motivations for using ensembles, including reducing the variance of the estimator, and across most modeling tasks there are improvements in accuracy when using ensembles as opposed to single trees. There are two popular forms of tree-based ensemble models that are both used in this project: random forests and XGBoost. These models have extensive sets of hyperparameters, which will be discussed below. In this discussion, we will identify cases where certain ranges of hyperparameters increase the risk of overfitting. Correspondingly, other ranges of those same hyperparameters would thus increase the risk of underfitting. But for concision, only overfitting is discussed.
 
-\subsubsection*{Random Forest}
+\subsubsection{Random Forest}
+\hfill
 
-Random Forests are a variety of ensemble learner used in both regression and classification tasks. For some predetermined number of trees, a regression tree is built using a bootstrap sample of the training data, subsetted to a random sample of the available predictors. The bootstrapping and random sampling of the predictors used within the model reduces the variance of the estimator. When bootstrap sampling and random feature subsetting is not used, the trees in the ensemble are highly correlated to each other and the model struggles to learn the relationships between the response variable and the predictors. 
-
-CITE: ESL Page 587
+Random Forests are a variety of ensemble learner used in both regression and classification tasks. For some predetermined number of trees, a regression tree is built using a bootstrap sample of the training data, subsetted to a random sample of the available predictors. The bootstrapping and random sampling of the predictors used within the model reduces the variance of the estimator. When bootstrap sampling and random feature subsetting is not used, the trees in the ensemble are highly correlated to each other and the model struggles to learn the relationships between the response variable and the predictors \citep[p.\ 587]{Hastie-2010-ESL}. 
 
 Table \ref{tab:rf-params} shows the hyperparameters used in this project for the Random Forest model.
 
 Other hyperparameters exist for Random Forest models, but if they are not listed here their default values in the software were used. The ``n\_estimators" hyperparameter determines the total number of regression trees used in the ensemble. Larger values indicate a more complicated and computationally intensive model, and larger values also increase the risk of overfitting. The ``max\_depth" hyperparameter controls the depth of the regression trees in the ensemble, and again larger values indicate a more complicated and computationally intensive model, and larger values increase the risk of overfitting. The ``min\_samples\_split" hyperparameter sets a lower bound on the number of observations required to make a data partition in any given tree, and higher values increase the risk of overfitting. So the algorithm won't even consider a data partition on an existing partition that has fewer than 2 observations. Similarly, the ``min\_samples\_leaf" hyperparameter sets the lower bound on the number of observations that are in a partition. So the algorithm won't make a data partition if it leaves zero observations in one of the partitions. The ``max\_features" hyperparameter determines what fraction of the predictor variables are used in any given regression tree. Larger values increase the risk of overfitting. Finally, the ``bootstrap" parameter determines whether or not a bootstrap sample, or random sample with replacement, of the training data is taken for each regression tree in the ensemble. Bootstrapping is used to reduce the correlation between the training data in each tree and thus reduce the variance of the final estimator. 
 
-For more information on the Random Forest hyperparameters, see (CITE https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestRegressor.html)
+For more information on the Random Forest hyperparameters, see \url{https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestRegressor.html}
 
 \begin{table}[ht]
 \centering
@@ -35,8 +30,8 @@ For more information on the Random Forest hyperparameters, see (CITE https://sci
 \hline
 \textbf{Parameter} & \textbf{Value} \\
 \hline
-n\_estimators & 25 \\
-max\_depth & 5 \\
+n\_estimators & 50 \\
+max\_depth & 8 \\
 min\_samples\_split & 2 \\
 min\_samples\_leaf & 1 \\
 max\_features & 0.8 \\
@@ -48,18 +43,16 @@ bootstrap & true \\
 \end{table}
 
 
-\subsubsection*{XGBoost}
+\subsubsection{XGBoost}
+\hfill
 
 Boosting refers to a variety of ensemble learning methods where the individual ensemble members are very simple, so-called ``weak learners", and then an iterative scheme reweights the data on the observations that the weak learners perform poorly on. In the context of regression trees, a simple regression tree is fit to the data in the first iteration. Subsequent iterations re-weight the data associated with observations that have relatively large residuals. 
 
-Extreme gradient boosting, or XGBoost, is an augmentation of gradient boosting that provides computational benefits and additional functionality. Computational benefits of XGBoost relative to standard gradient tree boosting include efficiently handling sparse data with many missing values and support for parallelization. Additional modeling features of XGBoost include regularization of the parameters (i.e. L2 penalty similar to ridge regression).
+Extreme gradient boosting, or XGBoost, is an augmentation of gradient boosting that provides computational benefits and additional functionality. Computational benefits of XGBoost relative to standard gradient tree boosting include efficiently handling sparse data with many missing values and support for parallelization. Additional modeling features of XGBoost include regularization of the parameters (i.e. L2 penalty similar to ridge regression) \citep[p.\ 337]{Hastie-2010-ESL}. The software documentation can be found online at: \url{https://xgboost.readthedocs.io/}
 
-CITE: ESL Page 337
-CITE: https://xgboost.readthedocs.io/
+Table \ref{tab:xgb-params} shows the hyperparameters used in this project for the XGBoost model. These hyperparameters were used based on a compromise between computational efficiency and model accuracy. In the exploratory testing phase of the model tuning, the hyperparameters arrived at by \cite{Schreck-2023-MLV} for their XGBoost model were considered, but they ended up being much slower and slightly less accurate than this set of hyperparameters. It should be noted that Schreck et al. used a broader set of predictor variables, including reflectance bands from VIIRS satellites, so the set of hyperparameters they arrived at might be better with the set expanded predictors. 
 
-Table \ref{tab:xgb-params} shows the hyperparameters used in this project for the XGBoost model. These hyperparameters were used based on a compromise between computational efficiency and model accuracy. In the exploratory testing phase of the model tuning, the hyperparameters arrived at by Schreck et al. (2023) for their XGBoost model were considered, but they ended up being much slower and slightly less accurate than this set of hyperparameters \cite{Schreck-2023-MLV}. It should be noted that Schreck et al. used a broader set of predictor variables, including reflectance bands from VIIRS satellites, so the set of hyperparameters they arrived at might be better with the set expanded predictors. 
-
-The ``max\_depth" hyperparameter controls the maximum depth of a regression tree in the ensemble. Larger values imply a more complicated and more computationally intensive model, and larger values increase the risk of overfitting. The ``eta" hyperparameter is the learning rate, which controls how quickly the model updates fitted parameters in each iteration. The ``min\_child\_weight" hyperparameter sets a lower bound for how small the data partition can be. Smaller values of this hyperparameter again imply a more complicated and more computationally intensive model, and smaller values increase the risk of overfitting. The ``subsample" hyperparameter controls what fraction of the training data is randomly selected at each iteration of building a tree in the ensemble. This hyperparameter can range from 0 to 1, and larger values increase the risk of overfitting. The ``colsample\_bytree" is similar to the previous hyperparameter, but controls what fraction of the predictor variables are used in each iteration. The ``n\_estimators" hyperparameter is the total number of trees in the ensemble. Larger values imply a more complicated and computationally intensive model, and also larger values increase the risk of overfitting. Finally, the ``gamma" hyperparameter is similar to ``min\_child\_weight" in that it sets a lower bound on the decrease in the loss function required to make a data partition. Other hyperparameters exist for XGBoost models, but if they are not listed here their default values in the software were used. For more information on these hyperparameters, see (CITE https://xgboost.readthedocs.io/en/stable/parameter.html)
+The ``max\_depth" hyperparameter controls the maximum depth of a regression tree in the ensemble. Larger values imply a more complicated and more computationally intensive model, and larger values increase the risk of overfitting. The ``eta" hyperparameter is the learning rate, which controls how quickly the model updates fitted parameters in each iteration. The ``min\_child\_weight" hyperparameter sets a lower bound for how small the data partition can be. Smaller values of this hyperparameter again imply a more complicated and more computationally intensive model, and smaller values increase the risk of overfitting. The ``subsample" hyperparameter controls what fraction of the training data is randomly selected at each iteration of building a tree in the ensemble. This hyperparameter can range from 0 to 1, and larger values increase the risk of overfitting. The ``colsample\_bytree" is similar to the previous hyperparameter, but controls what fraction of the predictor variables are used in each iteration. The ``n\_estimators" hyperparameter is the total number of trees in the ensemble. Larger values imply a more complicated and computationally intensive model, and also larger values increase the risk of overfitting. Finally, the ``gamma" hyperparameter is similar to ``min\_child\_weight" in that it sets a lower bound on the decrease in the loss function required to make a data partition. Other hyperparameters exist for XGBoost models, but if they are not listed here their default values in the software were used. For more information on these hyperparameters, see: \url{https://xgboost.readthedocs.io/en/stable/parameter.html}
 
 \begin{table}[ht]
 \centering
@@ -67,12 +60,12 @@ The ``max\_depth" hyperparameter controls the maximum depth of a regression tree
 \hline
 \textbf{Parameter} & \textbf{Value} \\
 \hline
-max\_depth & 3 \\
+max\_depth & 4 \\
 eta & 0.1 \\
 min\_child\_weight & 1 \\
 subsample & 0.8 \\
 colsample\_bytree & 0.9 \\
-n\_estimators & 100 \\
+n\_estimators & 120 \\
 gamma & 0.1 \\
 \hline
 \end{tabular}

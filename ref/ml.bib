@@ -21,7 +21,7 @@
 
 @article{Buch-2022-SML,
 AUTHOR = {Buch, J. and Williams, A. P. and Juang, C. S. and Hansen, W. D. and Gentine, P.},
-TITLE = {SMLFire1.0: a stochastic machine learning (SML) model for wildfire activity in the western United States},
+TITLE = {SMLFire1.0: a stochastic machine learning ({SML}) model for wildfire activity in the western United States},
 JOURNAL = {Geoscientific Model Development},
 VOLUME = {16},
 YEAR = {2023},
@@ -33,11 +33,11 @@ DOI = {10.5194/gmd-16-3407-2023}
 
 
 @article{Lu-2021-EMS,
-author = {Lu, Yang and WEI, Chunzhu},
+author = {Lu, Yang and Wei, Chunzhu},
 year = {2021},
 month = {01},
 pages = {145410},
-title = {Evaluation of microwave soil moisture data for monitoring live fuel moisture content ({LFMC}) over the coterminous United States},
+title = {Evaluation of microwave soil moisture data for monitoring live fuel moisture content ({LFMC}) over the coterminous {United States}},
 volume = {771},
 journal = {Science of The Total Environment},
 doi = {10.1016/j.scitotenv.2021.145410}
@@ -62,12 +62,9 @@ school={University of California San Diego},
 title={Where's the Smoke and Fire? Exploiting Spatial and Temporal Context for Improved Wildfire Detection},
 journal={ProQuest Dissertations and Theses},
 pages={60},
-note={Copyright - Database copyright ProQuest LLC; ProQuest does not claim copyright in the individual underlying works; Last updated - 2023-06-21},
-abstract={This thesis covers techniques to improve wildfire detection accuracy through the use of spatial and temporal context. Our dataset of wildfires consists of high-resolution images with smoke plumes that need to be detected early, when they are smallest, to allow firefighters enough time to react. We propose two novel architectures - the first combines a region proposal network on a lower-resolution image with a sequence network on the full-resolution image for efficient, accurate predictions; and the second combines a ResNet feature extractor with a vision transformer for high resolution tiled image classification. We also propose novel loss functions, combining a precise per-grid-element loss with a coarser per-image loss to achieve better precision in our detected fires without increasing the amount of false positives. With these techniques, we achieve state of the art results on this dataset with an accuracy of 89% and an average time to detection of 12 seconds.},
-keywords={Wildfire detection accuracy; Loss functions; Time to detection; Region proposal network; Sequence network; Computer science; Natural resource management; Geographic information science; Forestry; Machine learning; Cameras; Accuracy; Datasets; Information storage; Experiments; Neural networks; Information sharing; Forest & brush fires; Information communication; Clouds; 0370:Geographic information science; 0478:Forestry; 0984:Computer science; 0528:Natural Resource Management},
 isbn={9798516959943},
 language={English},
-url={https://aurarialibrary.idm.oclc.org/login?url=https://www.proquest.com/dissertations-theses/wheres-smoke-fire-exploiting-spatial-temporal/docview/2556411662/se-2},
+howpublished={\url{https://www.proquest.com/dissertations-theses/wheres-smoke-fire-exploiting-spatial-temporal/docview/2556411662/se-2}}
 }
 
 @article{Yang-2021-PFF,
@@ -99,9 +96,8 @@ VOLUME = {15},
 YEAR = {2023},
 NUMBER = {13},
 ARTICLE-NUMBER = {3372},
-URL = {https://www.mdpi.com/2072-4292/15/13/3372},
+URL = {https://arxiv.org/abs/2305.11910},
 ISSN = {2072-4292},
-ABSTRACT = {Monitoring the fuel moisture content (FMC) of 10 h dead vegetation is crucial for managing and mitigating the impact of wildland fires. The combination of in situ FMC observations, numerical weather prediction (NWP) models, and satellite retrievals has facilitated the development of machine learning (ML) models to estimate 10 h dead FMC retrievals over the contiguous US (CONUS). In this study, ML models were trained using variables from the National Water Model, the High-Resolution Rapid Refresh (HRRR) NWP model, and static surface properties, along with surface reflectances and land surface temperature (LST) retrievals from the Visible Infrared Imaging Radiometer Suite (VIIRS) instrument on the Suomi-NPP satellite system. Extensive hyper-parameter optimization resulted in skillful FMC models compared to a daily climatography RMSE (+44%) and an hourly climatography RMSE (+24%). Notably, VIIRS retrievals played a significant role as predictors for estimating 10 h dead FMC, demonstrating their importance as a group due to their high band correlation. Conversely, individual predictors within the HRRR group exhibited relatively high importance according to explainability techniques. Removing both HRRR and VIIRS retrievals as model inputs led to a significant decline in performance, particularly with worse RMSE values when excluding VIIRS retrievals. The importance of the VIIRS predictor group reinforces the dynamic relationship between 10 h dead fuel, the atmosphere, and soil moisture. These findings underscore the significance of selecting appropriate data sources when utilizing ML models for FMC prediction. VIIRS retrievals, in combination with selected HRRR variables, emerge as critical components in achieving skillful FMC estimates.},
 DOI = {10.3390/rs15133372}
 }
 
@@ -119,7 +115,7 @@ doi = {10.3390/f11090982}
 @INPROCEEDINGS{Kang-2022-FMC,
   author={Kang, Zhenyu and Jiao, Miao and Zhou, Zijie},
   booktitle={IGARSS 2022 - 2022 IEEE International Geoscience and Remote Sensing Symposium}, 
-  title={Fuel Moisture Content Forecasting Using Long Short-Term Memory({LSTM}) Model}, 
+  title={Fuel Moisture Content Forecasting Using Long Short-Term Memory ({LSTM}) Model}, 
   year={2022},
   volume={},
   number={},
@@ -180,4 +176,16 @@ DOI = {10.3390/f12070933}
   year         = {2022},
   howpublished = {\url{https://xgboost.readthedocs.io/}},
   note         = {Computer software}
+}
+
+@article{Bergmeir-2012-OUC,
+    author={Bergmeir,Christoph and Benítez,José M.},
+    year={2012},
+    title={On the use of cross-validation for time series predictor evaluation},
+    journal={Information sciences},
+    volume={191},
+    pages={192-213},
+    keywords={Cross-validation; Error measures; Machine learning; Predictor evaluation; Regression; Time series},
+    isbn={0020-0255},
+    language={English}
 }
